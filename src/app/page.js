@@ -4986,23 +4986,23 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                             >
                               <div className="d-flex align-items-center justify-content-between">
                                 <div className="d-flex align-items-center gap-8">
-                                  <span className="tag-pill" style={{ fontSize: '9px', padding: '1px 6px' }}>{scen.category}</span>
-                                  <h3 style={{ color: 'hsl(var(--text))', fontSize: '13px', margin: 0 }}>{scen.title}</h3>
+                                  <span className="tag-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>{scen.category}</span>
+                                  <h3 style={{ color: 'hsl(var(--text))', fontSize: '15px', fontWeight: '600', margin: 0 }}>{scen.title}</h3>
                                 </div>
-                                <span style={{ fontSize: '12px', color: 'hsl(var(--text-dark))' }}>{isExpanded ? '▼' : '▶'}</span>
+                                <span style={{ fontSize: '14px', color: 'hsl(var(--text-dark))' }}>{isExpanded ? '▼' : '▶'}</span>
                               </div>
 
                               {isExpanded && (
                                 <div style={{ marginTop: '12px', borderTop: '1px solid hsl(var(--border))', paddingTop: '10px' }} onClick={e => e.stopPropagation()}>
-                                  <div className="markdown-body" style={{ fontSize: '12.5px', color: 'hsl(var(--text-muted))', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                                  <div className="markdown-body" style={{ fontSize: '14px', color: 'hsl(var(--text-muted))', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
                                     {scen.answer}
                                   </div>
                                   <button
                                     className="btn btn-secondary"
-                                    style={{ marginTop: '12px', padding: '4px 10px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                    style={{ marginTop: '12px', padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
                                     onClick={() => handleSaveScenarioToNotes(scen.title, scen.answer)}
                                   >
-                                    <Plus className="stat-icon" style={{ width: '12px', height: '12px' }} /> Save Scenario to Notes
+                                    <Plus className="stat-icon" style={{ width: '13px', height: '13px' }} /> Save Scenario to Notes
                                   </button>
                                 </div>
                               )}
