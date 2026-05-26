@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Revision from '@/lib/models/Revision';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 // Helper to return mock data if MongoDB is not connected
 const getMockRevisions = () => [
@@ -24,11 +26,14 @@ const getMockRevisions = () => [
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const db = await dbConnect();
     if (!db) {
       return NextResponse.json({ data: getMockRevisions(), isMock: true });
     }
-    const revisions = await Revision.find({}).sort({ createdAt: -1 });
+    const revisions = await Revision.find({ userId }).sort({ createdAt: -1 });
     return NextResponse.json({ data: revisions, isMock: false });
   } catch (error) {
     console.error('Error fetching revisions:', error);
@@ -38,6 +43,9 @@ export async function GET() {
 
 export async function POST(req) {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const body = await req.json();
     const db = await dbConnect();
     if (!db) {
@@ -48,7 +56,7 @@ export async function POST(req) {
       };
       return NextResponse.json({ data: newMockItem, isMock: true });
     }
-    const newRevision = await Revision.create(body);
+    const newRevision = await Revision.create({ ...body, userId });
     return NextResponse.json({ data: newRevision, isMock: false });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
@@ -57,6 +65,9 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) {
@@ -66,7 +77,7 @@ export async function DELETE(req) {
     if (!db) {
       return NextResponse.json({ success: true, isMock: true });
     }
-    await Revision.findByIdAndDelete(id);
+    await Revision.findOneAndDelete({ _id: id, userId });
     return NextResponse.json({ success: true, isMock: false });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });

@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 
 const ErrorLogSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    default: 'default_user',
+  },
   title: {
     type: String,
     required: [true, 'Please provide a title for this error log.'],

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import {
   Layers,
   Terminal,
@@ -24,7 +25,8 @@ import {
   Check,
   RefreshCw,
   Search,
-  ExternalLink
+  ExternalLink,
+  Menu
 } from 'lucide-react';
 import { pysparkConcepts, pysparkChallenges } from './pysparkData';
 
@@ -2799,9 +2801,507 @@ if data["status"] == 200:
   }
 ];
 
+const pythonCompilerProblems = {
+  "Reverse a string using slicing": {
+    title: "Reverse String using Slicing",
+    difficulty: "Easy",
+    statement: "Write a function `reverse_string(s: str) -> str` that takes a string `s` and returns it reversed. To optimize performance, utilize Python's native slicing syntax.",
+    constraints: [
+      "Input string `s` contains only ASCII alphabetical characters.",
+      "Constraints: Must run in O(N) time complexity.",
+      "Memory: O(1) auxiliary space (modify or slice in-place)."
+    ],
+    examples: [
+      {
+        input: 's = "learning"',
+        output: '"gninrael"',
+        explanation: "Reversing the characters index-by-index yields 'gninrael'."
+      },
+      {
+        input: 's = "antigravity"',
+        output: '"ytivargitna"',
+        explanation: "Reversing 'antigravity' yields 'ytivargitna'."
+      }
+    ],
+    starterCode: `def reverse_string(s: str) -> str:
+    # Write your slicing logic here
+    pass`,
+    solution: `def reverse_string(s: str) -> str:
+    return s[::-1]`,
+    testCases: [
+      { input: "learning", expected: "gninrael" },
+      { input: "hello", expected: "olleh" },
+      { input: "datastructure", expected: "erutcurtsatad" }
+    ],
+    verify: (code) => {
+      const sanitized = code.replace(/\s+/g, '');
+      return sanitized.includes('[::-1]') || sanitized.includes('slice');
+    }
+  },
+  "Count vowels in a string": {
+    title: "Count Vowels in String",
+    difficulty: "Easy",
+    statement: "Write a function `count_vowels(s: str) -> int` that takes a string `s` and returns the total number of vowels ('a', 'e', 'i', 'o', 'u', case-insensitive) present in the string. Try utilizing a high-performance, single-line generator expression.",
+    constraints: [
+      "Input string contains printable ASCII letters, spaces, and symbols.",
+      "Constraints: Time complexity O(N), Space complexity O(1)."
+    ],
+    examples: [
+      {
+        input: 's = "python developer"',
+        output: "5",
+        explanation: "The vowels are 'o', 'e', 'e', 'o', 'e', totaling 5."
+      }
+    ],
+    starterCode: `def count_vowels(s: str) -> int:
+    # Write your generator logic here
+    pass`,
+    solution: `def count_vowels(s: str) -> int:
+    vowels = "aeiouAEIOU"
+    return sum(1 for char in s if char in vowels)`,
+    testCases: [
+      { input: "python developer", expected: 5 },
+      { input: "data engineer", expected: 5 },
+      { input: "sky", expected: 0 }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('sum(') && (clean.includes('in') || clean.includes('vowels'));
+    }
+  },
+  "Generate Fibonacci series": {
+    title: "Fibonacci Sequence Generator",
+    difficulty: "Medium",
+    statement: "Write a function `fibonacci(n: int) -> list` that generates and returns the first `n` terms of the Fibonacci sequence, starting with 0 and 1. Implement this iteratively without recursion to avoid stack overflow.",
+    constraints: [
+      "1 <= n <= 30",
+      "Time complexity O(N), space complexity O(N) to store the result list."
+    ],
+    examples: [
+      {
+        input: "n = 7",
+        output: "[0, 1, 1, 2, 3, 5, 8]",
+        explanation: "The first 7 Fibonacci numbers are 0, 1, 1, 2, 3, 5, and 8."
+      }
+    ],
+    starterCode: `def fibonacci(n: int) -> list:
+    # Write iterative Fibonacci logic here
+    pass`,
+    solution: `def fibonacci(n: int) -> list:
+    series = []
+    a, b = 0, 1
+    for _ in range(n):
+        series.append(a)
+        a, b = b, a + b
+    return series`,
+    testCases: [
+      { input: 7, expected: [0, 1, 1, 2, 3, 5, 8] },
+      { input: 3, expected: [0, 1, 1] },
+      { input: 1, expected: [0] }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('range(') && (clean.includes('a,b=b,a+b') || clean.includes('a, b = b, a + b') || clean.includes('append'));
+    }
+  },
+  "Create and use decorators": {
+    title: "Logger Function Decorators",
+    difficulty: "Medium",
+    statement: "Create a Python decorator `log_execution(func)` that wraps any standard target function. The decorator must print exactly `[Logger]: Before execution` prior to executing the function, execute the function, and then print `[Logger]: After execution` immediately after.",
+    constraints: [
+      "Must correctly support functions with variable arbitrary positional and keyword arguments (*args, **kwargs).",
+      "Must return the wrapped output value correctly."
+    ],
+    examples: [
+      {
+        input: '@log_execution\ndef greet(name):\n    print(f"Hello, {name}!")',
+        output: "[Logger]: Before execution\nHello, Alex!\n[Logger]: After execution",
+        explanation: "Calling greet('Alex') prints wrapper entries before and after the hello output."
+      }
+    ],
+    starterCode: `def log_execution(func):
+    def wrapper(*args, **kwargs):
+        # Write wrapper logic here
+        pass
+    return wrapper`,
+    solution: `def log_execution(func):
+    def wrapper(*args, **kwargs):
+        print("[Logger]: Before execution")
+        result = func(*args, **kwargs)
+        print("[Logger]: After execution")
+        return result
+    return wrapper`,
+    testCases: [
+      { input: "greet('Alex')", expected: "success" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('wrapper') && clean.includes('func(') && clean.includes('before') && clean.includes('after');
+    }
+  },
+  "Read a text file and count total words": {
+    title: "Text File Word Count Pipeline",
+    difficulty: "Medium",
+    statement: "Write a function `count_words(file_path: str) -> int` that opens a text file safely inside a `with open(...)` block, reads its content, splits it by whitespace, and returns the total number of words. Standardize file closures.",
+    constraints: [
+      "File I/O must use context managers (`with`) to prevent connection leaks.",
+      "Time complexity O(L) where L is total lines count."
+    ],
+    examples: [
+      {
+        input: 'file_path = "employees.txt" (containing "Data Engineering Learning")',
+        output: "3",
+        explanation: "Splitting the text by whitespace yields three words: ['Data', 'Engineering', 'Learning']."
+      }
+    ],
+    starterCode: `def count_words(file_path: str) -> int:
+    # Write safe file word count logic here
+    pass`,
+    solution: `def count_words(file_path: str) -> int:
+    with open(file_path, 'r') as f:
+        content = f.read()
+        words = content.split()
+        return len(words)`,
+    testCases: [
+      { input: "employees.txt", expected: 3 }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('with') && clean.includes('open(') && (clean.includes('split(') || clean.includes('split()')) && clean.includes('len(');
+    }
+  }
+};
+
+const pysparkCompilerProblems = {
+  "1. Read CSV file into DataFrame": {
+    title: "CSV DataFrame Reader",
+    difficulty: "Easy",
+    statement: "Write a function `read_csv(spark, path: str)` that utilizes the `SparkSession` `spark` to ingest a CSV file into a PySpark DataFrame with high-performance schema inference and headers enabled.",
+    constraints: [
+      "Format must be specified as 'csv'.",
+      "Options must specify 'header' as 'true' and 'inferSchema' as 'true'."
+    ],
+    examples: [
+      {
+        input: 'path = "employees.csv"',
+        output: "DataFrame[id: int, name: string, salary: double]",
+        explanation: "PySpark ingests the file, parses column headers, and assigns appropriate data types automatically."
+      }
+    ],
+    starterCode: `def read_csv(spark, path: str):
+    # Write your spark reader logic here
+    pass`,
+    solution: `def read_csv(spark, path: str):
+    return spark.read.format("csv") \\
+        .option("header", "true") \\
+        .option("inferSchema", "true") \\
+        .load(path)`,
+    testCases: [
+      { input: "employees.csv", expected: "StructType" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('spark.read') && clean.includes('csv') && clean.includes('header') && clean.includes('inferschema');
+    }
+  },
+  "12. Group by and aggregate salary": {
+    title: "GroupBy Aggregates",
+    difficulty: "Easy",
+    statement: "Write a function `get_city_stats(df)` that aggregates a PySpark DataFrame `df`. Group the data by `city`, calculate the average `salary` as `avg_salary`, and retrieve the maximum `age` as `max_age`.",
+    constraints: [
+      "Must import Spark SQL functions `avg` and `max` for column calculations."
+    ],
+    examples: [
+      {
+        input: 'df (columns: id, name, city, salary, age)',
+        output: "DataFrame[city: string, avg_salary: double, max_age: int]",
+        explanation: "DataFrame is grouped by city with aggregate columns calculated correctly."
+      }
+    ],
+    starterCode: `from pyspark.sql import functions as F
+
+def get_city_stats(df):
+    # Write your groupBy aggregation logic here
+    pass`,
+    solution: `from pyspark.sql import functions as F
+
+def get_city_stats(df):
+    return df.groupBy("city").agg(
+        F.avg("salary").alias("avg_salary"),
+        F.max("age").alias("max_age")
+    )`,
+    testCases: [
+      { input: "df", expected: "AggregatedDataFrame" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('groupby(') && clean.includes('agg(') && (clean.includes('avg(') || clean.includes('mean(')) && clean.includes('max(');
+    }
+  },
+  "22. Remove duplicates using Window functions": {
+    title: "Window Deduplication",
+    difficulty: "Medium",
+    statement: "Given a DataFrame `df`, remove duplicate rows for each user by partitioning on `user_id`, ordering by `timestamp` descending, and keeping only the latest entry per user using a Window function and `row_number()`.",
+    constraints: [
+      "Must use PySpark Window functions.",
+      "Filter out rows where row number is greater than 1."
+    ],
+    examples: [
+      {
+        input: 'df (columns: user_id, timestamp, action)',
+        output: "DataFrame[user_id: int, timestamp: timestamp, action: string]",
+        explanation: "Assigns ranks to each user's actions based on time, pruning duplicates."
+      }
+    ],
+    starterCode: `from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number, desc
+
+def deduplicate_users(df):
+    # Define Window and filter row_number here
+    pass`,
+    solution: `from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number, desc
+
+def deduplicate_users(df):
+    windowSpec = Window.partitionBy("user_id").orderBy(desc("timestamp"))
+    return df.withColumn("rn", row_number().over(windowSpec)) \\
+             .filter("rn == 1") \\
+             .drop("rn")`,
+    testCases: [
+      { input: "df", expected: "DeduplicatedDataFrame" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('partitionby(') && clean.includes('orderby(') && clean.includes('row_number(') && (clean.includes('filter(') || clean.includes('where('));
+    }
+  },
+  "27. Use broadcast join optimization": {
+    title: "Broadcast Join Hint",
+    difficulty: "Medium",
+    statement: "Optimize standard shuffle joins by broadcasting a tiny DataFrame `df_small` to all executors, avoiding expensive shuffle steps for large tables `df_large`.",
+    constraints: [
+      "Must use `broadcast()` column wrapper function."
+    ],
+    examples: [
+      {
+        input: "df_large (100M rows), df_small (50 rows)",
+        output: "Map-side Broadcast Join executed.",
+        explanation: "Bypasses worker network shuffles, accelerating query execution times."
+      }
+    ],
+    starterCode: `from pyspark.sql.functions import broadcast
+
+def optimize_join(df_large, df_small):
+    # Perform map-side join here
+    pass`,
+    solution: `from pyspark.sql.functions import broadcast
+
+def optimize_join(df_large, df_small):
+    return df_large.join(broadcast(df_small), "user_id", "inner")`,
+    testCases: [
+      { input: "df_large, df_small", expected: "BroadcastJoin" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('broadcast(') && clean.includes('.join(');
+    }
+  },
+  "29. Handle skewed data using salting": {
+    title: "Skew Key Salting",
+    difficulty: "Hard",
+    statement: "Dreaded data skew causes slow executors when joining high-cardinality keys. Write salting logic to append a random salt value (0-3) to the join key, distributing skew records evenly across executors.",
+    constraints: [
+      "Add a calculated random integer column `salt`.",
+      "Concat join key with `salt` to create new balanced partitions."
+    ],
+    examples: [
+      {
+        input: "df (highly skewed key 'Null' or 'Company_A')",
+        output: "Equally distributed executor loads.",
+        explanation: "Splits hot keys into balanced sub-keys, preventing slow worker bottlenecks."
+      }
+    ],
+    starterCode: `import pyspark.sql.functions as F
+
+def salt_join_keys(df):
+    # Write key salting column here
+    pass`,
+    solution: `import pyspark.sql.functions as F
+
+def salt_join_keys(df):
+    return df.withColumn("salt", F.concat(F.col("key"), F.lit("_"), F.rand(42).multiply(4).cast("int")))`,
+    testCases: [
+      { input: "df", expected: "SaltedDataFrame" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('withcolumn(') && (clean.includes('rand') || clean.includes('salt'));
+    }
+  },
+  "30. Optimize small file problem using OPTIMIZE + ZORDER": {
+    title: "Delta Compaction & Z-Order",
+    difficulty: "Hard",
+    statement: "Consolidate thousands of small parquet files inside a Delta table to optimize read speeds. Execute SQL statements that compact and cluster partitions using OPTIMIZE and cluster keys.",
+    constraints: [
+      "Must run Delta compaction queries using spark.sql().",
+      "Table index must be Z-Ordered by `customer_id`."
+    ],
+    examples: [
+      {
+        input: 'table_name = "sales_delta"',
+        output: "Consolidated parquet shards, ZORDER on customer_id.",
+        explanation: "Decreases files counts, improving file skipped scans by 90%."
+      }
+    ],
+    starterCode: `def compact_delta_table(spark, table_name: str):
+    # Write spark.sql optimized queries here
+    pass`,
+    solution: `def compact_delta_table(spark, table_name: str):
+    spark.sql(f"OPTIMIZE {table_name} ZORDER BY (customer_id)")`,
+    testCases: [
+      { input: "sales_delta", expected: "DeltaCompacted" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('spark.sql(') && clean.includes('optimize') && clean.includes('zorder');
+    }
+  }
+};
+
+const databricksCompilerProblems = {
+  "Ingestion Auto Loader": {
+    title: "Incremental Auto Loader Stream",
+    difficulty: "Medium",
+    statement: "Ingest files incrementally from cloud storage safely using Databricks Auto Loader (`cloudFiles`). Setup check pointing to recover from stream failures.",
+    constraints: [
+      "Read format must be 'cloudFiles'.",
+      "Option 'cloudFiles.format' must specify 'json' or 'csv'."
+    ],
+    examples: [
+      {
+        input: 'path = "/mnt/telemetry/raw"',
+        output: "Active Spark Streaming Query",
+        explanation: "Databricks Auto Loader registers directory file detections and streams new files dynamically."
+      }
+    ],
+    starterCode: `# Write Incremental Auto Loader stream here
+df_stream = (spark.readStream
+    .format("cloudFiles")
+    # Add cloudFiles format & loading options here
+)`,
+    solution: `df_stream = (spark.readStream
+    .format("cloudFiles")
+    .option("cloudFiles.format", "json")
+    .load("/mnt/telemetry/raw")
+)`,
+    testCases: [
+      { input: "/mnt/telemetry/raw", expected: "StreamingQuery" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('readstream') && clean.includes('cloudfiles') && clean.includes('format') && clean.includes('load(');
+    }
+  },
+  "Medallion Silver Cleaning": {
+    title: "PySpark User Logs Deduplication",
+    difficulty: "Easy",
+    statement: "Prune duplicate action entries from the user activity log DataFrame keeping only unique rows based on active columns.",
+    constraints: [
+      "Must utilize df.dropDuplicates() or df.distinct() for optimal operations."
+    ],
+    examples: [
+      {
+        input: 'df_users (50,000 logs)',
+        output: 'Deduplicated logs (48,150 rows)',
+        explanation: "Prunes out double click events or duplicate actions securely."
+      }
+    ],
+    starterCode: `# Complete duplicate pruning
+def deduplicate_logs(df):
+    # Write drop duplicates code here
+    pass`,
+    solution: `def deduplicate_logs(df):
+    return df.dropDuplicates(["id", "timestamp"])`,
+    testCases: [
+      { input: "df_users", expected: "UniqueDataFrame" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('dropduplicates') || clean.includes('distinct');
+    }
+  },
+  "Window running totals": {
+    title: "Revenue Partition Running Totals",
+    difficulty: "Medium",
+    statement: "Write a window function partition query that computes running revenue totals grouped by `department` ordered by `date`.",
+    constraints: [
+      "Use PySpark Window partitionBy and orderBy.",
+      "Calculate F.sum('revenue') over Window specifications."
+    ],
+    examples: [
+      {
+        input: "IT department logs",
+        output: "Running revenue totals calculated correctly over time.",
+        explanation: "Tracks dynamic department ledger aggregates sequentially."
+      }
+    ],
+    starterCode: `from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+
+def calculate_running_total(df):
+    # Define window specs and sum columns here
+    pass`,
+    solution: `from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+
+def calculate_running_total(df):
+    windowSpec = Window.partitionBy("department").orderBy("date")
+    return df.withColumn("running_total", F.sum("revenue").over(windowSpec))`,
+    testCases: [
+      { input: "df", expected: "RunningTotalDataFrame" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('partitionby') && clean.includes('orderby') && clean.includes('sum(') && clean.includes('over(');
+    }
+  },
+  "Delta compactions (Z-Order)": {
+    title: "Delta Table Compaction Optimization",
+    difficulty: "Hard",
+    statement: "Perform Delta compaction optimization queries on Databricks tables by packing tiny files together and clustering customer partitions to minimize query latency.",
+    constraints: [
+      "Must execute OPTIMIZE and ZORDER BY customer_id."
+    ],
+    examples: [
+      {
+        input: 'sales table compaction',
+        output: "Delta Compacted table",
+        explanation: "Consolidates tiny parquet fragments into uniform larger database blocks."
+      }
+    ],
+    starterCode: `# compact delta tables using SQL queries
+spark.sql("OPTIMIZE ...")`,
+    solution: `spark.sql("OPTIMIZE sales_table ZORDER BY (customer_id)")`,
+    testCases: [
+      { input: "sales_table", expected: "CompactedDeltaTable" }
+    ],
+    verify: (code) => {
+      const clean = code.toLowerCase();
+      return clean.includes('optimize') && clean.includes('zorder');
+    }
+  }
+};
+
 export default function Home() {
+  const { data: session, status } = useSession();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isOffline, setIsOffline] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleNavigate = (tab) => {
+    setActiveTab(tab);
+    setMobileMenuOpen(false);
+  };
 
   // Gamification Stats State
   const [stats, setStats] = useState({
@@ -2892,6 +3392,7 @@ export default function Home() {
   const [databricksActiveTemplate, setDatabricksActiveTemplate] = useState('Ingestion Auto Loader');
   const [databricksTerminalOutput, setDatabricksTerminalOutput] = useState('');
   const [databricksTerminalStatus, setDatabricksTerminalStatus] = useState('idle'); // idle, running, success, error
+  const [showDatabricksSolution, setShowDatabricksSolution] = useState(false);
   const [activeCheatsheetCat, setActiveCheatsheetCat] = useState('magic');
 
   // Python Core Academy States
@@ -2904,6 +3405,7 @@ print("Reversed:", reversed_text)`);
   const [pythonActiveTemplate, setPythonActiveTemplate] = useState('Reverse a string using slicing');
   const [pythonTerminalOutput, setPythonTerminalOutput] = useState('');
   const [pythonTerminalStatus, setPythonTerminalStatus] = useState('idle');
+  const [showPythonSolution, setShowPythonSolution] = useState(false);
   const [pythonSearchQuery, setPythonSearchQuery] = useState('');
   const [pythonCategoryFilter, setPythonCategoryFilter] = useState('All');
   const [expandedPythonConcept, setExpandedPythonConcept] = useState(null);
@@ -2920,6 +3422,7 @@ df.show(5)`);
   const [pysparkActiveTemplate, setPysparkActiveTemplate] = useState('1. Read CSV file into DataFrame');
   const [pysparkTerminalOutput, setPysparkTerminalOutput] = useState('');
   const [pysparkTerminalStatus, setPysparkTerminalStatus] = useState('idle');
+  const [showPysparkSolution, setShowPysparkSolution] = useState(false);
   const [pysparkSearchQuery, setPysparkSearchQuery] = useState('');
   const [pysparkCategoryFilter, setPysparkCategoryFilter] = useState('All');
   const [expandedPysparkConcept, setExpandedPysparkConcept] = useState(null);
@@ -2952,43 +3455,70 @@ df.show(5)`);
 
   const loadPythonPresetTemplate = (name) => {
     setPythonActiveTemplate(name);
-    const challenge = pythonCodingChallenges.find(c => c.title.includes(name) || c.title.split('. ')[1] === name);
-    if (challenge) {
-      setPythonCode(challenge.code);
+    setShowPythonSolution(false);
+    const prob = pythonCompilerProblems[name];
+    if (prob) {
+      setPythonCode(prob.starterCode);
       setPythonTerminalStatus('idle');
-      setPythonTerminalOutput('Ready. Edit your code and click "Run Script".');
+      setPythonTerminalOutput('Ready. Write your solution function and click "Run Code" to test it.');
     }
   };
 
   const runPythonPlayground = () => {
     setPythonTerminalStatus('running');
-    setPythonTerminalOutput('Initializing python virtual environment (venv)...\nRunning syntax checks on script.py...\nExecuting script...');
+    setPythonTerminalOutput('Initializing python virtual environment (venv)...\nRunning syntax checks on script.py...\nExecuting test suite...\n\n');
     
     setTimeout(() => {
-      const code = pythonCode.trim().toLowerCase();
-      let output = '';
-      
-      if (code.includes('[::-1]') || code.includes('slicing')) {
-        output = `Success: String reversed successfully!\nOriginal: learning\nReversed: gninrael`;
-        addXP(100);
-      } else if (code.includes('vowels') || code.includes('aeiou')) {
-        output = `Success: Vowels counted successfully!\nText: "python developer"\nTotal Vowels: 5`;
-        addXP(100);
-      } else if (code.includes('fibonacci')) {
-        output = `Success: Fibonacci series generated successfully!\nTerms: 7\nResult: [0, 1, 1, 2, 3, 5, 8]`;
-        addXP(100);
-      } else if (code.includes('open') || code.includes('f.read') || code.includes('f.write') || code.includes('json') || code.includes('csv') || code.includes('pandas')) {
-        output = `Success: Python File I/O executed successfully!\nFiles scanned inside directory: 14\nTotal lines parsed: 2,500\nExecution completed with status 0.`;
-        addXP(100);
-      } else if (code.includes('decorator') || code.includes('wrapper')) {
-        output = `Success: Decorator execution log:\n[Logger]: Before greet() function execution\nHello, Alex!\n[Logger]: After execution`;
-        addXP(100);
-      } else {
-        output = `Success: Script compiled successfully!\nPython 3.11 runtime completed task in 12ms.\nOutput:\n------------------\nExecution completed with zero warnings.`;
+      const activeProb = pythonCompilerProblems[pythonActiveTemplate];
+      if (!activeProb) {
+        setPythonTerminalStatus('success');
+        setPythonTerminalOutput('Success: script compiled, but no LeetCode test suite registered for this preset.');
+        return;
       }
       
-      setPythonTerminalStatus('success');
-      setPythonTerminalOutput(output);
+      const userCode = pythonCode;
+      const isCorrect = activeProb.verify(userCode);
+      
+      let testOutput = `🚀 LEETCODE VERIFICATION SUITE RUNNING...\n`;
+      testOutput += `Problem: ${activeProb.title} (${activeProb.difficulty})\n`;
+      testOutput += `--------------------------------------------------\n`;
+      
+      let allPassed = true;
+      activeProb.testCases.forEach((tc, idx) => {
+        testOutput += `Test Case ${idx + 1}/${activeProb.testCases.length}: Input: ${JSON.stringify(tc.input)}\n`;
+        if (isCorrect) {
+          testOutput += `Expected: ${JSON.stringify(tc.expected)}\n`;
+          testOutput += `Actual: ${JSON.stringify(tc.expected)}\n`;
+          testOutput += `✅ Test Case Passed!\n\n`;
+        } else {
+          allPassed = false;
+          testOutput += `Expected: ${JSON.stringify(tc.expected)}\n`;
+          if (!userCode.includes('def ')) {
+            testOutput += `Actual: None (Syntax Error: No function defined)\n`;
+          } else {
+            testOutput += `Actual: Unchanged / Incorrect Value\n`;
+          }
+          testOutput += `❌ Test Case Failed!\n\n`;
+        }
+      });
+      
+      testOutput += `--------------------------------------------------\n`;
+      if (allPassed) {
+        testOutput += `🎉 Status: ACCEPTED\n`;
+        testOutput += `All ${activeProb.testCases.length}/${activeProb.testCases.length} test cases passed.\n`;
+        testOutput += `Runtime: 8ms (beats 98.4% of Python submissions)\n`;
+        testOutput += `Memory: 14.1 MB (beats 92.1% of submissions)\n`;
+        testOutput += `Reward: +100 XP added!`;
+        addXP(100);
+        setPythonTerminalStatus('success');
+      } else {
+        testOutput += `❌ Status: WRONG ANSWER\n`;
+        testOutput += `Passed: 0/${activeProb.testCases.length} test cases.\n`;
+        testOutput += `Error: Please check your logic and template function signature. Click "Show Solution" if you are stuck!`;
+        setPythonTerminalStatus('error');
+      }
+      
+      setPythonTerminalOutput(testOutput);
     }, 1500);
   };
 
@@ -3021,43 +3551,65 @@ df.show(5)`);
 
   const loadPysparkPresetTemplate = (name) => {
     setPysparkActiveTemplate(name);
-    const challenge = pysparkChallenges.find(c => c.title.includes(name) || c.title.split('. ')[1] === name);
-    if (challenge) {
-      setPysparkCode(challenge.code);
+    setShowPysparkSolution(false);
+    const prob = pysparkCompilerProblems[name];
+    if (prob) {
+      setPysparkCode(prob.starterCode);
       setPysparkTerminalStatus('idle');
-      setPysparkTerminalOutput('Ready. Edit your code and click "Run Script".');
+      setPysparkTerminalOutput('Ready. Write your solution function and click "Run Code" to test it.');
     }
   };
 
   const runPysparkPlayground = () => {
     setPysparkTerminalStatus('running');
-    setPysparkTerminalOutput('Spinning up PySpark JVM cluster environment...\nInitializing SparkSession...\nExecuting Spark SQL execution graph...');
+    setPysparkTerminalOutput('Spinning up PySpark JVM cluster environment...\nInitializing SparkSession...\nExecuting Spark SQL execution graph...\n\n');
     
     setTimeout(() => {
-      const code = pysparkCode.trim().toLowerCase();
-      let output = '';
-      
-      if (code.includes('broadcast')) {
-        output = `Success: Spark SQL Broadcast Join completed!\nDataFrame Small: 1,500 records\nDataFrame Large: 120,000,000 records\nOptimization: Map-Side Join executed, network shuffle avoided entirely.\nDuration: 1.2s`;
-        addXP(100);
-      } else if (code.includes('window') || code.includes('partitionby')) {
-        output = `Success: Window partition calculation completed!\nPartitions scanned: 12\nColumns rank assigned.\nTop record per partition generated successfully.`;
-        addXP(100);
-      } else if (code.includes('salted') || code.includes('salting')) {
-        output = `Success: Salting optimization join completed!\nRandom keys concatenated [0-3].\nData skew distribution skew corrected across 4 Worker Executors.\nDuration: 2.1s`;
-        addXP(100);
-      } else if (code.includes('read.format("csv")') || code.includes('read.csv')) {
-        output = `Success: CSV read completed successfully!\nSchema inferred: StructType(id: Integer, name: String, salary: Double)\nLoaded: 5,450 records in 120ms.`;
-        addXP(100);
-      } else if (code.includes('optimize') || code.includes('zorder')) {
-        output = `Success: Delta Table OPTIMIZE executed successfully!\nSmall files consolidated: 1,240 tiny files merged into 3 active files.\nZORDER indices clustered by department_id.\nQuery skipping optimized by 85%.`;
-        addXP(100);
-      } else {
-        output = `Success: Spark Job completed successfully!\nActive executors: 4\nTask partitions processed: 200\nExecution completed with zero errors.`;
+      const activeProb = pysparkCompilerProblems[pysparkActiveTemplate];
+      if (!activeProb) {
+        setPysparkTerminalStatus('success');
+        setPysparkTerminalOutput('Success: Spark Job completed successfully!');
+        return;
       }
       
-      setPysparkTerminalStatus('success');
-      setPysparkTerminalOutput(output);
+      const userCode = pysparkCode;
+      const isCorrect = activeProb.verify(userCode);
+      
+      let testOutput = `⚡ PYSPARK CLUSTER TEST SUITE RUNNING...\n`;
+      testOutput += `Problem: ${activeProb.title} (${activeProb.difficulty})\n`;
+      testOutput += `--------------------------------------------------\n`;
+      
+      let allPassed = true;
+      activeProb.testCases.forEach((tc, idx) => {
+        testOutput += `Test Input Partition: ${JSON.stringify(tc.input)}\n`;
+        if (isCorrect) {
+          testOutput += `Expected DAG Plan: ${JSON.stringify(tc.expected)}\n`;
+          testOutput += `Actual DAG Plan: ${JSON.stringify(tc.expected)}\n`;
+          testOutput += `✅ Spark Plan Optimization Passed!\n\n`;
+        } else {
+          allPassed = false;
+          testOutput += `Expected DAG Plan: ${JSON.stringify(tc.expected)}\n`;
+          testOutput += `Actual DAG Plan: Unoptimized Standard Join Plan (Full Shuffle Shuffle)\n`;
+          testOutput += `❌ Test Case Failed! Incorrect SQL query aggregates or missing hints.\n\n`;
+        }
+      });
+      
+      testOutput += `--------------------------------------------------\n`;
+      if (allPassed) {
+        testOutput += `🎉 Status: ACCEPTED (Spark Catalyst Optimized)\n`;
+        testOutput += `Shuffle size: 0 bytes (Map-side join executed)\n`;
+        testOutput += `Execution partitions: 1 (perfect data load balance)\n`;
+        testOutput += `Reward: +100 XP added!`;
+        addXP(100);
+        setPysparkTerminalStatus('success');
+      } else {
+        testOutput += `❌ Status: WRONG ANSWER (Unoptimized Job)\n`;
+        testOutput += `Shuffle partitions skewed. Missing salting, ZORDER compactions, or broadcast join hints.\n`;
+        testOutput += `Need help? Toggle "Show Solution" to learn the advanced Spark SQL pattern!`;
+        setPysparkTerminalStatus('error');
+      }
+      
+      setPysparkTerminalOutput(testOutput);
     }, 1500);
   };
 
@@ -3093,168 +3645,69 @@ df.show(5)`);
 
   const loadPresetTemplate = (name) => {
     setDatabricksActiveTemplate(name);
-    let code = '';
-    
-    if (name === 'Ingestion Auto Loader') {
-      code = `# Ingest data incrementally from Cloud Storage
-df_stream = (spark.readStream
-  .format("cloudFiles")
-  .option("cloudFiles.format", "json")
-  .option("cloudFiles.schemaLocation", "/mnt/telemetry/schemas/ingest")
-  .load("/mnt/telemetry/raw_logs"))
-
-(df_stream.writeStream
-  .format("delta")
-  .outputMode("append")
-  .option("checkpointLocation", "/mnt/telemetry/_checkpoints/ingest")
-  .table("finance_catalog.raw.ingest_logs"))`;
-    } else if (name === 'Medallion Silver Cleaning') {
-      code = `# Clean, cast types, and deduplicate raw data
-from pyspark.sql.functions import col, current_timestamp
-
-raw_df = spark.read.table("finance_catalog.raw.ingest_logs")
-
-clean_df = (raw_df
-  .filter(col("id").isNotNull())
-  .dropDuplicates(subset=["id", "timestamp"])
-  .withColumn("ingested_at", current_timestamp())
-  .withColumn("amount", col("amount").astype("double")))
-
-clean_df.write.format("delta").mode("overwrite").saveAsTable("finance_catalog.clean.users")`;
-    } else if (name === 'Window running totals') {
-      code = `# Calculate running totals using PySpark Window
-from pyspark.sql.window import Window
-from pyspark.sql.functions import sum, row_number, col
-
-window_spec = Window.partitionBy("department").orderBy("date")
-
-aggregated_df = (spark.read.table("finance_catalog.clean.revenues")
-  .withColumn("row_number_id", row_number().over(window_spec))
-  .withColumn("running_total", sum(col("revenue")).over(window_spec)))
-
-aggregated_df.show()`;
-    } else if (name === 'Delta Merge CDC') {
-      code = `# Upsert change data capture (CDC) increments into delta target
-from delta.tables import DeltaTable
-
-target_table = DeltaTable.forName(spark, "finance_catalog.clean.users")
-incoming_updates = spark.read.table("finance_catalog.raw.user_increments")
-
-(target_table.alias("t")
-  .merge(incoming_updates.alias("s"), "t.id = s.id")
-  .whenMatchedUpdate(set = {
-    "name": "s.name",
-    "email": "s.email",
-    "updated_at": "s.updated_at"
-  })
-  .whenNotMatchedInsert(values = {
-    "id": "s.id",
-    "name": "s.name",
-    "email": "s.email",
-    "updated_at": "s.updated_at"
-  })
-  .execute())`;
-    } else if (name === 'Delta compactions (Z-Order)') {
-      code = `-- SQL optimization & cleanup commands
-OPTIMIZE finance_catalog.clean.users
-ZORDER BY (customer_id, date);
-
--- Vacuum files older than 7 days retention
-VACUUM finance_catalog.clean.users RETAIN 168 HOURS;`;
-    } else if (name === 'Unity Catalog governance') {
-      code = `-- Centralized RBAC commands for catalogs & schemas
-GRANT USAGE, CREATE SCHEMA ON CATALOG finance_catalog TO \`de_operator_group\`;
-GRANT SELECT, READ VOLUME ON SCHEMA finance_catalog.transactions TO \`analyst_group\`;
-
--- Implement row level filter policies
-CREATE ROW FILTER POLICY ledgers_policy 
-USING (region STRING) -> region = current_user_groups()[0];`;
+    setShowDatabricksSolution(false);
+    const prob = databricksCompilerProblems[name];
+    if (prob) {
+      setDatabricksCode(prob.starterCode);
+      setDatabricksTerminalStatus('idle');
+      setDatabricksTerminalOutput('Ready. Write your solution function and click "Run Code" to test it.');
+    } else {
+      setDatabricksCode("# Custom sandbox template. Write your code here.");
+      setDatabricksTerminalStatus('idle');
+      setDatabricksTerminalOutput('Ready. Write or edit your PySpark/SQL code and click "Run Script".');
     }
-    
-    setDatabricksCode(code);
-    setDatabricksTerminalStatus('idle');
-    setDatabricksTerminalOutput('Ready. Write or edit your PySpark/SQL code and click "Run Script".');
   };
 
   const runDatabricksPlayground = () => {
     setDatabricksTerminalStatus('running');
-    setDatabricksTerminalOutput('Initializing SparkSession...\nSetting config: spark.sql.extensions = io.delta.sql.DeltaSparkSessionExtension\nSparkSession initialized (Spark version 3.5.0, Photon execution engine active).');
+    setDatabricksTerminalOutput('Initializing SparkSession...\nSetting config: spark.sql.extensions = io.delta.sql.DeltaSparkSessionExtension\nSparkSession initialized (Spark version 3.5.0, Photon execution engine active).\n\n');
     
     setTimeout(() => {
-      const code = databricksCode.trim().toLowerCase();
-      let output = '';
-      
-      if (code.includes('cloudfiles') || code.includes('readstream')) {
-        output = `Success: Auto Loader Stream started successfully!
-[Stream Info]: Query active: cloud_files_ingest_stream
-[Checkpoint Directory]: /mnt/telemetry/_checkpoints/ingest
-[Schema Discovered]: id INT, name STRING, timestamp TIMESTAMP, amount DOUBLE
-[Console Stream log]:
-   Micro-batch 1 processing ... 14,800 records ingested.
-   Micro-batch 2 processing ... 8,920 records ingested.
-Streaming pipeline active. Checkpoints recorded. Delta table updated!`;
-        addXP(100);
-      } else if (code.includes('dropduplicates') || code.includes('filter') || code.includes('withcolumn')) {
-        output = `Success: PySpark transformation executed successfully!
-Input rows: 50,000 | Output rows: 48,150 (1,850 duplicate rows pruned)
-[Schema Output]:
- |-- id: integer (nullable = true)
- |-- name: string (nullable = true)
- |-- email: string (nullable = true)
- |-- updated_at: timestamp (nullable = true)
-[Preview Output (df.show)]:
-+---+-------+------------------+-------------------+
-| id|   name|             email|         updated_at|
-+---+-------+------------------+-------------------+
-|  1|  Alice| alice@company.com|2026-05-26 19:40:00|
-|  2|    Bob|   bob@company.com|2026-05-26 19:41:00|
-|  3|Charlie|charlie@company.com|2026-05-26 19:42:00|
-+---+-------+------------------+-------------------+`;
-        addXP(100);
-      } else if (code.includes('window') || code.includes('row_number') || code.includes('running_total')) {
-        output = `Success: Window partition functions calculated successfully!
-[Preview Output (df.show)]:
-+----------+----------+-------+------------+-------------+
-|department|      date|revenue|row_number_id|running_total|
-+----------+----------+-------+------------+-------------+
-|        IT|2026-05-01|  12000|           1|        12000|
-|        IT|2026-05-02|  15000|           2|        27000|
-|     Sales|2026-05-01|   8000|           1|         8000|
-|     Sales|2026-05-02|  10000|           2|        18000|
-+----------+----------+-------+------------+-------------+`;
-        addXP(100);
-      } else if (code.includes('optimize') || code.includes('zorder') || code.includes('vacuum')) {
-        output = `Success: Delta compaction completed successfully!
-[Action Logs]:
- - Merged 1,420 small parquet files into 4 optimized files.
- - Z-Ordering partition files by index: [customer_id, date].
- - Vacuumed 28 expired historical transactions (older than 7 days retention).
-Execution performance speedup: 4.8x. Files compiled successfully!`;
-        addXP(100);
-      } else if (code.includes('merge') || code.includes('upsert') || code.includes('matched')) {
-        output = `Success: Delta CDC Upsert Merge statement executed successfully!
-[Delta Engine log]:
- - Affected partitions: 12
- - Rows matched & updated: 450
- - New rows appended: 180
-Metadata version bumped: Version 8 -> Version 9.`;
-        addXP(100);
-      } else if (code.includes('grant') || code.includes('catalog') || code.includes('select')) {
-        output = `Success: Unity Catalog securable access rules updated!
-[Privileges audit]:
- - Role: ANALYST_GROUP
- - Securable: catalog 'finance_catalog', schema 'transactions', table 'ledgers'
- - Action: GRANT [SELECT, READ VOLUME] successful.
-Access rule active. Row-level masking filters compiled.`;
-        addXP(100);
-      } else {
-        output = `Success: PySpark code executed successfully!
-Photon processing engine completed task in 42ms.
-[Spark session active] Terminal ready.`;
+      const activeProb = databricksCompilerProblems[databricksActiveTemplate];
+      if (!activeProb) {
+        setDatabricksTerminalStatus('success');
+        setDatabricksTerminalOutput('Success: Databricks compile succeeded.');
+        return;
       }
       
-      setDatabricksTerminalStatus('success');
-      setDatabricksTerminalOutput(output);
+      const userCode = databricksCode;
+      const isCorrect = activeProb.verify(userCode);
+      
+      let testOutput = `☁️ DATABRICKS PHOTON EXECUTOR SUITE RUNNING...\n`;
+      testOutput += `Problem: ${activeProb.title} (${activeProb.difficulty})\n`;
+      testOutput += `--------------------------------------------------\n`;
+      
+      let allPassed = true;
+      activeProb.testCases.forEach((tc, idx) => {
+        testOutput += `Mock Delta Source: ${JSON.stringify(tc.input)}\n`;
+        if (isCorrect) {
+          testOutput += `Expected Output: ${JSON.stringify(tc.expected)}\n`;
+          testOutput += `Actual Output: ${JSON.stringify(tc.expected)}\n`;
+          testOutput += `✅ Databricks Test Case Passed!\n\n`;
+        } else {
+          allPassed = false;
+          testOutput += `Expected Output: ${JSON.stringify(tc.expected)}\n`;
+          testOutput += `Actual Output: None or Syntax Error\n`;
+          testOutput += `❌ Test Case Failed! Incorrect syntax.\n\n`;
+        }
+      });
+      
+      testOutput += `--------------------------------------------------\n`;
+      if (allPassed) {
+        testOutput += `🎉 Status: ACCEPTED (Medallion Asset Verified)\n`;
+        testOutput += `Photon engine acceleration: 12x speedup active.\n`;
+        testOutput += `Checkpoint logs verified in Delta metadata.\n`;
+        testOutput += `Reward: +100 XP added!`;
+        addXP(100);
+        setDatabricksTerminalStatus('success');
+      } else {
+        testOutput += `❌ Status: WRONG ANSWER (Execution Halted)\n`;
+        testOutput += `Verify Auto Loader patterns, window aggregations, or file compaction structures.\n`;
+        testOutput += `Toggle "Show Solution" to reveal the correct Databricks workflow.`;
+        setDatabricksTerminalStatus('error');
+      }
+      
+      setDatabricksTerminalOutput(testOutput);
     }, 1500);
   };
 
@@ -3333,13 +3786,15 @@ Photon processing engine completed task in 42ms.
     load: 'idle'
   });
 
-  // Load Initial Data from APIs
+  // Load Initial Data when session status changes
   useEffect(() => {
     fetchProgress();
     fetchErrorLogs();
     fetchRevisions();
+  }, [session]);
 
-    // Increment learning time every minute
+  // Increment learning time every minute
+  useEffect(() => {
     const interval = setInterval(() => {
       incrementStudyTime(1);
     }, 60000);
@@ -4104,76 +4559,170 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
   return (
     <div className="app-container">
       {/* Sidebar Navigation */}
-      <aside className="sidebar">
+      {mobileMenuOpen && (
+        <div className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)}></div>
+      )}
+      <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="logo-container">
           <div className="logo-icon">DE</div>
           <span className="logo-text">DE learning</span>
         </div>
 
+        {status === 'authenticated' && session?.user ? (
+          <div className="user-profile-card" style={{ padding: '16px 20px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {session.user.image ? (
+                <img
+                  src={session.user.image}
+                  alt={session.user.name || 'User'}
+                  style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid hsl(var(--primary))' }}
+                />
+              ) : (
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'hsl(var(--primary))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '16px' }}>
+                  {session.user.name ? session.user.name[0].toUpperCase() : 'U'}
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <span style={{ fontSize: '13.5px', fontWeight: '700', color: 'hsl(var(--text))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {session.user.name}
+                </span>
+                <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {session.user.email}
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Award className="stat-icon" style={{ width: '13px', height: '13px', color: 'hsl(var(--primary))' }} />
+                <span style={{ fontSize: '11px', fontWeight: '700', color: 'hsl(var(--text))' }}>Lv {stats.level}</span>
+                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))' }}>• {stats.xp} XP</span>
+              </div>
+              <button
+                onClick={() => signOut()}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'hsl(var(--secondary))',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline'
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="user-profile-card" style={{ padding: '16px 20px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'hsla(var(--border), 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--text-muted))' }}>
+                <Layers style={{ width: '18px', height: '18px' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: 'hsl(var(--text))' }}>Guest Account</span>
+                <span style={{ fontSize: '10.5px', color: 'hsl(var(--text-muted))' }}>Progress isn't saved to cloud</span>
+              </div>
+            </div>
+            <button
+              onClick={() => signIn('google')}
+              className="btn btn-primary"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                borderRadius: '8px',
+                fontWeight: '600',
+                background: 'hsl(var(--primary))',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.51 0-6.386-2.87-6.386-6.39s2.87-6.39 6.386-6.39c1.63 0 3.126.617 4.27 1.73l3.076-3.075C19.347 2.683 15.93 1.5 12.24 1.5c-5.79 0-10.5 4.71-10.5 10.5s4.71 10.5 10.5 10.5c5.789 0 10.428-4.22 10.428-10.5 0-.662-.08-1.294-.228-1.895l-10.2 1.08z" />
+              </svg>
+              Sign In with Google
+            </button>
+          </div>
+        )}
+
         <nav className="nav-menu">
+          <div className="nav-section-title">Core Overview</div>
           <button
             className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => handleNavigate('dashboard')}
           >
             <Layers className="nav-item-icon" /> Dashboard
           </button>
+
+          <div className="nav-section-title">Programming Tracks</div>
           <button
             className={`nav-item ${activeTab === 'python' ? 'active' : ''}`}
-            onClick={() => setActiveTab('python')}
+            onClick={() => handleNavigate('python')}
           >
-            <BookOpen className="nav-item-icon" style={{ color: 'hsl(var(--success))' }} /> Python Core Academy
+            <BookOpen className="nav-item-icon" /> Python Core
           </button>
           <button
             className={`nav-item ${activeTab === 'pandas' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pandas')}
+            onClick={() => handleNavigate('pandas')}
           >
             <Database className="nav-item-icon" /> Pandas Playground
           </button>
           <button
-            className={`nav-item ${activeTab === 'databricks' ? 'active' : ''}`}
-            onClick={() => setActiveTab('databricks')}
-          >
-            <Cpu className="nav-item-icon" style={{ color: 'hsl(var(--primary))' }} /> Databricks Academy
-          </button>
-          <button
             className={`nav-item ${activeTab === 'pyspark' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pyspark')}
+            onClick={() => handleNavigate('pyspark')}
           >
-            <Sparkles className="nav-item-icon" style={{ color: 'hsl(var(--secondary))' }} /> PySpark Core Academy
+            <Sparkles className="nav-item-icon" /> PySpark Core
+          </button>
+
+          <div className="nav-section-title">Data Infrastructure</div>
+          <button
+            className={`nav-item ${activeTab === 'databricks' ? 'active' : ''}`}
+            onClick={() => handleNavigate('databricks')}
+          >
+            <Cpu className="nav-item-icon" /> Databricks Academy
           </button>
           <button
             className={`nav-item ${activeTab === 'docker' ? 'active' : ''}`}
-            onClick={() => setActiveTab('docker')}
+            onClick={() => handleNavigate('docker')}
           >
             <Terminal className="nav-item-icon" /> Docker Track
           </button>
           <button
             className={`nav-item ${activeTab === 'kafka' ? 'active' : ''}`}
-            onClick={() => setActiveTab('kafka')}
+            onClick={() => handleNavigate('kafka')}
           >
             <Cpu className="nav-item-icon" /> Kafka Ingestion
           </button>
           <button
             className={`nav-item ${activeTab === 'airflow' ? 'active' : ''}`}
-            onClick={() => setActiveTab('airflow')}
+            onClick={() => handleNavigate('airflow')}
           >
             <RefreshCw className="nav-item-icon" /> Airflow Pipelines
           </button>
+
+          <div className="nav-section-title">Developer Workspace</div>
           <button
             className={`nav-item ${activeTab === 'errors' ? 'active' : ''}`}
-            onClick={() => setActiveTab('errors')}
+            onClick={() => handleNavigate('errors')}
           >
             <AlertTriangle className="nav-item-icon" /> Error Logger
           </button>
           <button
             className={`nav-item ${activeTab === 'revisions' ? 'active' : ''}`}
-            onClick={() => setActiveTab('revisions')}
+            onClick={() => handleNavigate('revisions')}
           >
             <FileText className="nav-item-icon" /> My Notes
           </button>
           <button
             className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => handleNavigate('settings')}
           >
             <SettingsIcon className="nav-item-icon" /> Configurations
           </button>
@@ -4199,7 +4748,24 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
       <main className="main-content">
         {/* Header with Stats */}
         <header className="header">
-          <div className="page-title-section">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="mobile-menu-toggle-btn"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'hsl(var(--text))',
+              marginRight: '12px',
+              padding: '6px',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Menu style={{ width: '22px', height: '22px' }} />
+          </button>
+
+          <div className="page-title-section" style={{ flexGrow: 1 }}>
             <h1>
               {activeTab === 'dashboard' && 'Developer & Cloud Architecture Hub'}
               {activeTab === 'python' && 'Python Core & File Systems Academy'}
@@ -4303,7 +4869,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                       <div className="chat-header">
                         <div className="d-flex align-items-center gap-8">
                           <div className="editor-dot" style={{ background: '#27c93f', width: '8px', height: '8px' }}></div>
-                          <span style={{ fontSize: '12px', fontWeight: '700', color: '#fff' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '700', color: 'hsl(var(--text))' }}>
                             Model: {ollamaConfig.model}
                           </span>
                         </div>
@@ -4421,7 +4987,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                               <div className="d-flex align-items-center justify-content-between">
                                 <div className="d-flex align-items-center gap-8">
                                   <span className="tag-pill" style={{ fontSize: '9px', padding: '1px 6px' }}>{scen.category}</span>
-                                  <h3 style={{ color: '#fff', fontSize: '13px', margin: 0 }}>{scen.title}</h3>
+                                  <h3 style={{ color: 'hsl(var(--text))', fontSize: '13px', margin: 0 }}>{scen.title}</h3>
                                 </div>
                                 <span style={{ fontSize: '12px', color: 'hsl(var(--text-dark))' }}>{isExpanded ? '▼' : '▶'}</span>
                               </div>
@@ -4498,8 +5064,8 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                         placeholder="Search 41 interview questions..."
                         value={pythonSearchQuery}
                         onChange={e => setPythonSearchQuery(e.target.value)}
-                        className="input-field"
-                        style={{ paddingLeft: '38px', width: '100%', background: 'hsla(var(--card), 0.5)', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px 10px 10px 38px', color: '#fff', fontSize: '13px' }}
+                        className="form-input"
+                        style={{ paddingLeft: '38px', width: '100%', background: '#ffffff', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px 10px 10px 38px', color: 'hsl(var(--text))', fontSize: '13px' }}
                       />
                     </div>
                     
@@ -4555,7 +5121,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                                 }}>
                                   {concept.category}
                                 </span>
-                                <h3 style={{ fontSize: '14px', fontWeight: '600', color: isExpanded ? '#fff' : 'hsl(var(--text))', transition: 'color 0.2s' }}>
+                                <h3 style={{ fontSize: '14px', fontWeight: '600', color: isExpanded ? 'hsl(var(--primary))' : 'hsl(var(--text))', transition: 'color 0.2s' }}>
                                   {concept.question}
                                 </h3>
                               </div>
@@ -4600,8 +5166,8 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                         placeholder="Search 60 challenges..."
                         value={pythonSearchQuery}
                         onChange={e => setPythonSearchQuery(e.target.value)}
-                        className="input-field"
-                        style={{ paddingLeft: '32px', width: '100%', background: 'hsla(var(--card), 0.3)', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '8px 8px 8px 32px', color: '#fff', fontSize: '12px' }}
+                        className="form-input"
+                        style={{ paddingLeft: '32px', width: '100%', background: '#ffffff', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '8px 8px 8px 32px', color: 'hsl(var(--text))', fontSize: '12px' }}
                       />
                     </div>
 
@@ -4627,9 +5193,9 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                               justifyContent: 'space-between',
                               padding: '12px 16px',
                               borderRadius: '12px',
-                              background: isSelected ? 'linear-gradient(90deg, hsla(var(--primary), 0.15) 0%, hsla(var(--secondary), 0.05) 100%)' : 'hsla(var(--card), 0.3)',
-                              border: isSelected ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--border))',
-                              color: isSelected ? '#fff' : 'hsl(var(--text-muted))',
+                              background: isSelected ? 'hsl(var(--primary) / 0.08)' : '#ffffff',
+                              border: isSelected ? '1px solid hsl(var(--primary) / 0.25)' : '1px solid hsl(var(--border))',
+                              color: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                               textAlign: 'left',
                               cursor: 'pointer',
                               transition: 'all 0.2s ease',
@@ -4673,13 +5239,13 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                                 <span style={{ fontSize: '11px', color: 'hsl(var(--secondary))', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.05em' }}>
                                   Category: {activeCh.category}
                                 </span>
-                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#fff', marginTop: '4px' }}>{activeCh.title}</h2>
+                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: 'hsl(var(--text))', marginTop: '4px' }}>{activeCh.title}</h2>
                               </div>
                             </div>
                           </div>
 
                           <div style={{ background: 'hsla(var(--card), 0.15)', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '16px' }}>
-                            <h3 style={{ fontSize: '13px', fontWeight: '600', color: '#fff', marginBottom: '8px' }}>Challenge Goal</h3>
+                            <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'hsl(var(--text))', marginBottom: '8px' }}>Challenge Goal</h3>
                             <p style={{ fontSize: '13px', color: 'hsl(var(--text-muted))', lineHeight: '1.5' }}>{activeCh.desc}</p>
                           </div>
 
@@ -4705,7 +5271,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                             <span style={{ fontSize: '11px', color: 'hsl(var(--primary))', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
                               🧠 Verify Understanding (+20 XP)
                             </span>
-                            <h3 style={{ fontSize: '14px', color: '#fff', fontWeight: '600', marginBottom: '16px', lineHeight: '1.4' }}>
+                            <h3 style={{ fontSize: '14px', color: 'hsl(var(--text))', fontWeight: '600', marginBottom: '16px', lineHeight: '1.4' }}>
                               {activeCh.quiz.question}
                             </h3>
 
@@ -4739,7 +5305,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                                       borderRadius: '8px',
                                       border: `1px solid ${borderCol}`,
                                       background: bgCol,
-                                      color: isSelected || (activeQuiz.checked && optIdx === activeCh.quiz.correctIndex) ? '#fff' : 'hsl(var(--text-muted))',
+                                      color: activeQuiz.checked && optIdx === activeCh.quiz.correctIndex ? 'hsl(var(--success))' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                                       fontSize: '13px',
                                       textAlign: 'left',
                                       cursor: activeQuiz.checked ? 'default' : 'pointer',
@@ -4759,7 +5325,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
 
                             {activeQuiz.checked && (
                               <div style={{ marginTop: '16px', padding: '16px', borderRadius: '10px', background: 'hsla(var(--card), 0.5)', borderLeft: `4px solid ${activeQuiz.isCorrect ? 'hsl(var(--success))' : 'hsl(var(--danger))'}` }}>
-                                <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff', marginBottom: '6px' }}>
+                                <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: 'hsl(var(--text))', marginBottom: '6px' }}>
                                   {activeQuiz.isCorrect ? '🎉 Correct Answer! (+20 XP)' : '❌ Incorrect Answer'}
                                 </h4>
                                 <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-muted))', lineHeight: '1.4' }}>
@@ -4777,60 +5343,108 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
 
               {/* SUBTAB 3: COMPILER SIMULATOR */}
               {pythonSubTab === 'compiler' && (
-                <div className="playground-split">
-                  {/* Left Instructions / Template Panel */}
-                  <div className="playground-instructions">
-                    <div className="card-title-container">
-                      <div className="card-header-with-icon">
-                        <Terminal className="card-header-icon" style={{ color: 'hsl(var(--primary))' }} />
-                        <div>
-                          <h2>Python Compiler Simulator</h2>
-                          <p className="card-subtitle">Test algorithms and high-value filesystem pipelines</p>
-                        </div>
-                      </div>
-                    </div>
-
+                <div className="leetcode-split">
+                  {/* Left Problem Statement Panel */}
+                  <div className="leetcode-problem-panel">
                     <div className="form-group" style={{ marginBottom: '16px' }}>
-                      <label style={{ fontSize: '13px', color: '#fff', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Select Preset Script Template:</label>
+                      <label style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: '600', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Select Python Core Problem:
+                      </label>
                       <select
-                        className="form-control select-dropdown"
+                        className="form-select"
                         style={{
                           width: '100%',
-                          background: 'hsla(var(--card), 0.5)',
+                          background: '#ffffff',
                           border: '1px solid hsl(var(--border))',
                           borderRadius: '8px',
                           padding: '10px',
-                          color: '#fff',
+                          color: 'hsl(var(--text))',
                           outline: 'none',
                           cursor: 'pointer',
-                          fontSize: '13px'
+                          fontSize: '13.5px',
+                          fontWeight: '500'
                         }}
                         value={pythonActiveTemplate}
                         onChange={(e) => loadPythonPresetTemplate(e.target.value)}
                       >
-                        <option value="Reverse a string using slicing">Template A: String Slicing Algorithm</option>
-                        <option value="Count vowels in a string">Template B: Vowels Count Filter</option>
-                        <option value="Generate Fibonacci series">Template C: Fibonacci Sequence Generator</option>
-                        <option value="Create and use decorators">Template D: Logger Function Decorators</option>
-                        <option value="Read a text file and count total words">Template E: Text File Word Count Pipeline</option>
+                        <option value="Reverse a string using slicing">String Slicing: Reverse String</option>
+                        <option value="Count vowels in a string">Vowels Count Filter</option>
+                        <option value="Generate Fibonacci series">Fibonacci Sequence Generator</option>
+                        <option value="Create and use decorators">Logger Function Decorators</option>
+                        <option value="Read a text file and count total words">Text File Word Count Pipeline</option>
                       </select>
                     </div>
 
-                    <div className="visualizer-card" style={{ padding: '16px', background: 'hsla(var(--card), 0.2)', border: '1px solid hsl(var(--border))', borderRadius: '12px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'hsl(var(--secondary))', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
-                        💻 Simulated Runtime Engine
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                      <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'hsl(var(--text))' }}>
+                        {pythonCompilerProblems[pythonActiveTemplate]?.title}
+                      </h2>
+                      <span className={`leetcode-badge ${pythonCompilerProblems[pythonActiveTemplate]?.difficulty.toLowerCase()}`}>
+                        {pythonCompilerProblems[pythonActiveTemplate]?.difficulty}
                       </span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: 'hsl(var(--text-muted))', lineHeight: '1.4' }}>
-                        <p><strong>Environment</strong>: Virtual Env isolated standard library simulator.</p>
-                        <p><strong>Supported Ops</strong>: Slicing, lists compression, map/filter, I/O, decorators, exceptions.</p>
-                        <p><strong>Gamification</strong>: Compiling matching core structures rewards <strong>+100 XP</strong> directly into your developer metrics!</p>
-                      </div>
                     </div>
+
+                    <p style={{ fontSize: '14px', color: 'hsl(var(--text))', lineHeight: '1.6', marginTop: '8px' }}>
+                      {pythonCompilerProblems[pythonActiveTemplate]?.statement}
+                    </p>
+
+                    <h3 className="leetcode-section-title">Examples</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {pythonCompilerProblems[pythonActiveTemplate]?.examples.map((ex, idx) => (
+                        <div key={idx} className="leetcode-example-block">
+                          <strong>Example {idx + 1}:</strong><br />
+                          <strong>Input:</strong> {ex.input}<br />
+                          <strong>Output:</strong> {ex.output}<br />
+                          {ex.explanation && (
+                            <>
+                              <strong>Explanation:</strong> {ex.explanation}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <h3 className="leetcode-section-title">Constraints</h3>
+                    <ul style={{ paddingLeft: '20px', margin: '4px 0 0 0', fontSize: '13px', color: 'hsl(var(--text-muted))', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {pythonCompilerProblems[pythonActiveTemplate]?.constraints.map((c, idx) => (
+                        <li key={idx} style={{ listStyleType: 'disc' }}>{c}</li>
+                      ))}
+                    </ul>
+
+                    {showPythonSolution && (
+                      <div style={{ marginTop: '20px', border: '1px solid hsl(var(--primary))', borderRadius: '12px', background: 'hsla(var(--primary), 0.05)', padding: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'hsl(var(--primary))', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            💡 Optimal Python Solution
+                          </span>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '2px 8px', fontSize: '11px', height: 'auto' }}
+                            onClick={() => setShowPythonSolution(false)}
+                          >
+                            Hide Solution
+                          </button>
+                        </div>
+                        <pre style={{
+                          background: '#090d16',
+                          color: '#f8fafc',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          fontSize: '12.5px',
+                          fontFamily: 'var(--font-mono, monospace)',
+                          overflowX: 'auto',
+                          border: '1px solid #1e293b',
+                          margin: 0
+                        }}>
+                          <code>{pythonCompilerProblems[pythonActiveTemplate]?.solution}</code>
+                        </pre>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Editor / Output Panel */}
+                  {/* Right Editor & Console Panel */}
                   <div className="flex-column d-flex gap-16">
-                    <div className="editor-container" style={{ minHeight: '320px' }}>
+                    <div className="editor-container" style={{ minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
                       <div className="editor-header">
                         <div className="editor-dots">
                           <div className="editor-dot"></div>
@@ -4840,32 +5454,54 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                         <span className="editor-title">{pythonActiveTemplate.toLowerCase().replace(/\s+/g, '_').substring(0, 20)}.py</span>
                       </div>
 
-                      <div className="editor-body">
+                      <div className="editor-body" style={{ flex: 1, display: 'flex' }}>
                         <textarea
                           className="code-textarea"
                           placeholder="Write your Python script here..."
                           value={pythonCode}
                           onChange={e => setPythonCode(e.target.value)}
-                          style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px' }}
+                          style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px', width: '100%', flex: 1, minHeight: '260px' }}
                         />
                       </div>
 
-                      <div className="editor-footer">
-                        <button className="btn btn-secondary" onClick={() => loadPythonPresetTemplate(pythonActiveTemplate)}>
-                          Reset Script
-                        </button>
-                        <button className="btn btn-primary" onClick={runPythonPlayground}>
-                          <Play className="stat-icon" /> Run Script
+                      <div className="editor-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid hsl(var(--border))' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => loadPythonPresetTemplate(pythonActiveTemplate)}>
+                            Reset Code
+                          </button>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '6px 12px', fontSize: '12px', background: showPythonSolution ? 'hsla(var(--primary), 0.1)' : 'transparent', borderColor: showPythonSolution ? 'hsl(var(--primary))' : 'hsl(var(--border))' }}
+                            onClick={() => setShowPythonSolution(!showPythonSolution)}
+                          >
+                            {showPythonSolution ? 'Hide Solution' : 'Show Solution'}
+                          </button>
+                        </div>
+                        <button className="btn btn-primary" style={{ padding: '6px 16px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={runPythonPlayground}>
+                          <Play className="stat-icon" style={{ width: '14px', height: '14px' }} /> Run Code
                         </button>
                       </div>
                     </div>
 
                     <div className="form-group">
-                      <label style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
-                        Simulated Local Console Stdout:
-                      </label>
-                      <div className={`terminal-output ${pythonTerminalStatus}`} style={{ minHeight: '120px', fontFamily: 'var(--font-mono, monospace)', fontSize: '12.5px', whiteSpace: 'pre-wrap' }}>
-                        {pythonTerminalOutput || 'Console is clean. Click "Run Script" to trigger execution.'}
+                      <div className="leetcode-console-header">
+                        <label style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: '600', display: 'block', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Simulated Local Console Stdout:
+                        </label>
+                        <div className="leetcode-console-status">
+                          {pythonTerminalStatus === 'running' && (
+                            <span className="leetcode-status-tag running">Evaluating</span>
+                          )}
+                          {pythonTerminalStatus === 'success' && (
+                            <span className="leetcode-status-tag accepted">Accepted</span>
+                          )}
+                          {pythonTerminalStatus === 'error' && (
+                            <span className="leetcode-status-tag wrong-answer">Wrong Answer</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`terminal-output ${pythonTerminalStatus}`} style={{ minHeight: '160px', maxHeight: '240px', overflowY: 'auto', fontFamily: 'var(--font-mono, monospace)', fontSize: '12.5px', whiteSpace: 'pre-wrap', background: '#090d16', color: '#38bdf8', padding: '14px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                        {pythonTerminalOutput || 'Console is clean. Click "Run Code" to trigger execution.'}
                       </div>
                     </div>
                   </div>
@@ -4922,8 +5558,8 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                         placeholder="Search 40 interview questions..."
                         value={pysparkSearchQuery}
                         onChange={e => setPysparkSearchQuery(e.target.value)}
-                        className="input-field"
-                        style={{ paddingLeft: '38px', width: '100%', background: 'hsla(var(--card), 0.5)', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px 10px 10px 38px', color: '#fff', fontSize: '13px' }}
+                        className="form-input"
+                        style={{ paddingLeft: '38px', width: '100%', background: '#ffffff', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px 10px 10px 38px', color: 'hsl(var(--text))', fontSize: '13px' }}
                       />
                     </div>
                     
@@ -4979,7 +5615,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                                 }}>
                                   {concept.category}
                                 </span>
-                                <h3 style={{ fontSize: '14px', fontWeight: '600', color: isExpanded ? '#fff' : 'hsl(var(--text))', transition: 'color 0.2s' }}>
+                                <h3 style={{ fontSize: '14px', fontWeight: '600', color: isExpanded ? 'hsl(var(--primary))' : 'hsl(var(--text))', transition: 'color 0.2s' }}>
                                   {concept.question}
                                 </h3>
                               </div>
@@ -5024,8 +5660,8 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                         placeholder="Search 50 challenges..."
                         value={pysparkSearchQuery}
                         onChange={e => setPysparkSearchQuery(e.target.value)}
-                        className="input-field"
-                        style={{ paddingLeft: '32px', width: '100%', background: 'hsla(var(--card), 0.3)', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '8px 8px 8px 32px', color: '#fff', fontSize: '12px' }}
+                        className="form-input"
+                        style={{ paddingLeft: '32px', width: '100%', background: '#ffffff', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '8px 8px 8px 32px', color: 'hsl(var(--text))', fontSize: '12px' }}
                       />
                     </div>
 
@@ -5051,9 +5687,9 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                               justifyContent: 'space-between',
                               padding: '12px 16px',
                               borderRadius: '12px',
-                              background: isSelected ? 'linear-gradient(90deg, hsla(var(--primary), 0.15) 0%, hsla(var(--secondary), 0.05) 100%)' : 'hsla(var(--card), 0.3)',
-                              border: isSelected ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--border))',
-                              color: isSelected ? '#fff' : 'hsl(var(--text-muted))',
+                              background: isSelected ? 'hsl(var(--primary) / 0.08)' : '#ffffff',
+                              border: isSelected ? '1px solid hsl(var(--primary) / 0.25)' : '1px solid hsl(var(--border))',
+                              color: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                               textAlign: 'left',
                               cursor: 'pointer',
                               transition: 'all 0.2s ease',
@@ -5097,13 +5733,13 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                                 <span style={{ fontSize: '11px', color: 'hsl(var(--secondary))', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.05em' }}>
                                   Category: {activeCh.category}
                                 </span>
-                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#fff', marginTop: '4px' }}>{activeCh.title}</h2>
+                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: 'hsl(var(--text))', marginTop: '4px' }}>{activeCh.title}</h2>
                               </div>
                             </div>
                           </div>
 
                           <div style={{ background: 'hsla(var(--card), 0.15)', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '16px' }}>
-                            <h3 style={{ fontSize: '13px', fontWeight: '600', color: '#fff', marginBottom: '8px' }}>Challenge Goal / Context</h3>
+                            <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'hsl(var(--text))', marginBottom: '8px' }}>Challenge Goal / Context</h3>
                             <p style={{ fontSize: '13px', color: 'hsl(var(--text-muted))', lineHeight: '1.5' }}>{activeCh.desc}</p>
                           </div>
 
@@ -5129,7 +5765,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                             <span style={{ fontSize: '11px', color: 'hsl(var(--primary))', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
                               🧠 Verify Understanding (+20 XP)
                             </span>
-                            <h3 style={{ fontSize: '14px', color: '#fff', fontWeight: '600', marginBottom: '16px', lineHeight: '1.4' }}>
+                            <h3 style={{ fontSize: '14px', color: 'hsl(var(--text))', fontWeight: '600', marginBottom: '16px', lineHeight: '1.4' }}>
                               {activeCh.quiz.question}
                             </h3>
 
@@ -5163,7 +5799,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                                       borderRadius: '8px',
                                       border: `1px solid ${borderCol}`,
                                       background: bgCol,
-                                      color: isSelected || (activeQuiz.checked && optIdx === activeCh.quiz.correctIndex) ? '#fff' : 'hsl(var(--text-muted))',
+                                      color: activeQuiz.checked && optIdx === activeCh.quiz.correctIndex ? 'hsl(var(--success))' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                                       fontSize: '13px',
                                       textAlign: 'left',
                                       cursor: activeQuiz.checked ? 'default' : 'pointer',
@@ -5183,7 +5819,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
 
                             {activeQuiz.checked && (
                               <div style={{ marginTop: '16px', padding: '16px', borderRadius: '10px', background: 'hsla(var(--card), 0.5)', borderLeft: `4px solid ${activeQuiz.isCorrect ? 'hsl(var(--success))' : 'hsl(var(--danger))'}` }}>
-                                <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff', marginBottom: '6px' }}>
+                                <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: 'hsl(var(--text))', marginBottom: '6px' }}>
                                   {activeQuiz.isCorrect ? '🎉 Correct Answer! (+20 XP)' : '❌ Incorrect Answer'}
                                 </h4>
                                 <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-muted))', lineHeight: '1.4' }}>
@@ -5201,96 +5837,166 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
 
               {/* SUBTAB 3: COMPILER SIMULATOR */}
               {pysparkSubTab === 'compiler' && (
-                <div className="playground-split">
-                  {/* Left Instructions / Template Panel */}
-                  <div className="playground-instructions">
-                    <div className="card-title-container">
-                      <div className="card-header-with-icon">
-                        <Terminal className="card-header-icon" style={{ color: 'hsl(var(--primary))' }} />
-                        <div>
-                          <h2>PySpark Compiler Simulator</h2>
-                          <p className="card-subtitle">Test Spark DAG optimization and parallel aggregations</p>
-                        </div>
-                      </div>
-                    </div>
-
+                <div className="leetcode-split">
+                  {/* Left Problem Statement Panel */}
+                  <div className="leetcode-problem-panel">
                     <div className="form-group" style={{ marginBottom: '16px' }}>
-                      <label style={{ fontSize: '13px', color: '#fff', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Select Preset Script Template:</label>
+                      <label style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: '600', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Select PySpark Core Problem:
+                      </label>
                       <select
-                        className="form-control select-dropdown"
+                        className="form-select"
                         style={{
                           width: '100%',
-                          background: 'hsla(var(--card), 0.5)',
+                          background: '#ffffff',
                           border: '1px solid hsl(var(--border))',
                           borderRadius: '8px',
                           padding: '10px',
-                          color: '#fff',
+                          color: 'hsl(var(--text))',
                           outline: 'none',
                           cursor: 'pointer',
-                          fontSize: '13px'
+                          fontSize: '13.5px',
+                          fontWeight: '500'
                         }}
                         value={pysparkActiveTemplate}
                         onChange={(e) => loadPysparkPresetTemplate(e.target.value)}
                       >
-                        <option value="1. Read CSV file into DataFrame">Template A: CSV DataFrame Reader</option>
-                        <option value="12. Group by and aggregate salary">Template B: GroupBy aggregates</option>
-                        <option value="22. Remove duplicates using Window functions">Template C: Window Deduplication</option>
-                        <option value="27. Use broadcast join optimization">Template D: Broadcast Join Hint</option>
-                        <option value="29. Handle skewed data using salting">Template E: Skew Key Salting</option>
-                        <option value="30. Optimize small file problem using OPTIMIZE + ZORDER">Template F: Delta Table Optimization</option>
+                        <option value="1. Read CSV file into DataFrame">CSV DataFrame Reader</option>
+                        <option value="12. Group by and aggregate salary">GroupBy Salary Aggregates</option>
+                        <option value="22. Remove duplicates using Window functions">Window Deduplication</option>
+                        <option value="27. Use broadcast join optimization">Broadcast Join Hint</option>
+                        <option value="29. Handle skewed data using salting">Skew Key Salting</option>
+                        <option value="30. Optimize small file problem using OPTIMIZE + ZORDER">Delta Table Z-Order Compaction</option>
                       </select>
                     </div>
 
-                    <div className="visualizer-card" style={{ padding: '16px', background: 'hsla(var(--card), 0.2)', border: '1px solid hsl(var(--border))', borderRadius: '12px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'hsl(var(--secondary))', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
-                        💻 Spark JVM Runtime Architecture
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                      <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'hsl(var(--text))' }}>
+                        {pysparkCompilerProblems[pysparkActiveTemplate]?.title}
+                      </h2>
+                      <span className={`leetcode-badge ${pysparkCompilerProblems[pysparkActiveTemplate]?.difficulty.toLowerCase()}`}>
+                        {pysparkCompilerProblems[pysparkActiveTemplate]?.difficulty}
                       </span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: 'hsl(var(--text-muted))', lineHeight: '1.4' }}>
-                        <p><strong>SparkSession</strong>: Console bound to simulated 'spark' entry variable.</p>
-                        <p><strong>Supported Plans</strong>: Shuffles logging, join strategies matching, dynamic skew indicators.</p>
-                        <p><strong>Gamification</strong>: Compiling specialized scripts containing broadcast hints or ZORDER commands rewards **+100 XP** instantly!</p>
-                      </div>
                     </div>
+
+                    <p style={{ fontSize: '14px', color: 'hsl(var(--text))', lineHeight: '1.6', marginTop: '8px' }}>
+                      {pysparkCompilerProblems[pysparkActiveTemplate]?.statement}
+                    </p>
+
+                    <h3 className="leetcode-section-title">Examples</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {pysparkCompilerProblems[pysparkActiveTemplate]?.examples.map((ex, idx) => (
+                        <div key={idx} className="leetcode-example-block">
+                          <strong>Example {idx + 1}:</strong><br />
+                          <strong>Input:</strong> {ex.input}<br />
+                          <strong>Output:</strong> {ex.output}<br />
+                          {ex.explanation && (
+                            <>
+                              <strong>Explanation:</strong> {ex.explanation}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <h3 className="leetcode-section-title">Constraints</h3>
+                    <ul style={{ paddingLeft: '20px', margin: '4px 0 0 0', fontSize: '13px', color: 'hsl(var(--text-muted))', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {pysparkCompilerProblems[pysparkActiveTemplate]?.constraints.map((c, idx) => (
+                        <li key={idx} style={{ listStyleType: 'disc' }}>{c}</li>
+                      ))}
+                    </ul>
+
+                    {showPysparkSolution && (
+                      <div style={{ marginTop: '20px', border: '1px solid hsl(var(--primary))', borderRadius: '12px', background: 'hsla(var(--primary), 0.05)', padding: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'hsl(var(--primary))', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            💡 Optimal Spark Plan Solution
+                          </span>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '2px 8px', fontSize: '11px', height: 'auto' }}
+                            onClick={() => setShowPysparkSolution(false)}
+                          >
+                            Hide Solution
+                          </button>
+                        </div>
+                        <pre style={{
+                          background: '#090d16',
+                          color: '#f8fafc',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          fontSize: '12.5px',
+                          fontFamily: 'var(--font-mono, monospace)',
+                          overflowX: 'auto',
+                          border: '1px solid #1e293b',
+                          margin: 0
+                        }}>
+                          <code>{pysparkCompilerProblems[pysparkActiveTemplate]?.solution}</code>
+                        </pre>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Editor / Output Panel */}
+                  {/* Right Editor & Console Panel */}
                   <div className="flex-column d-flex gap-16">
-                    <div className="editor-container" style={{ minHeight: '320px' }}>
+                    <div className="editor-container" style={{ minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
                       <div className="editor-header">
                         <div className="editor-dots">
                           <div className="editor-dot"></div>
                           <div className="editor-dot"></div>
                           <div className="editor-dot"></div>
                         </div>
-                        <span className="editor-title">{pysparkActiveTemplate.toLowerCase().replace(/\s+/g, '_').substring(0, 20)}.py</span>
+                        <span className="editor-title">{pysparkActiveTemplate.toLowerCase().replace(/[^a-z0-9]+/g, '_').substring(0, 20)}.py</span>
                       </div>
 
-                      <div className="editor-body">
+                      <div className="editor-body" style={{ flex: 1, display: 'flex' }}>
                         <textarea
                           className="code-textarea"
                           placeholder="Write your PySpark script here..."
                           value={pysparkCode}
                           onChange={e => setPysparkCode(e.target.value)}
-                          style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px' }}
+                          style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px', width: '100%', flex: 1, minHeight: '260px' }}
                         />
                       </div>
 
-                      <div className="editor-footer">
-                        <button className="btn btn-secondary" onClick={() => loadPysparkPresetTemplate(pysparkActiveTemplate)}>
-                          Reset Script
-                        </button>
-                        <button className="btn btn-primary" onClick={runPysparkPlayground}>
-                          <Play className="stat-icon" /> Run Script
+                      <div className="editor-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid hsl(var(--border))' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => loadPysparkPresetTemplate(pysparkActiveTemplate)}>
+                            Reset Code
+                          </button>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '6px 12px', fontSize: '12px', background: showPysparkSolution ? 'hsla(var(--primary), 0.1)' : 'transparent', borderColor: showPysparkSolution ? 'hsl(var(--primary))' : 'hsl(var(--border))' }}
+                            onClick={() => setShowPysparkSolution(!showPysparkSolution)}
+                          >
+                            {showPysparkSolution ? 'Hide Solution' : 'Show Solution'}
+                          </button>
+                        </div>
+                        <button className="btn btn-primary" style={{ padding: '6px 16px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={runPysparkPlayground}>
+                          <Play className="stat-icon" style={{ width: '14px', height: '14px' }} /> Run Code
                         </button>
                       </div>
                     </div>
 
                     <div className="form-group">
-                      <label style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
-                        Simulated Cluster Console Stdout:
-                      </label>
-                      <div className={`terminal-output ${pysparkTerminalStatus}`} style={{ minHeight: '120px', fontFamily: 'var(--font-mono, monospace)', fontSize: '12.5px', whiteSpace: 'pre-wrap' }}>
-                        {pysparkTerminalOutput || 'Cluster console is clean. Click "Run Script" to initialize execution.'}
+                      <div className="leetcode-console-header">
+                        <label style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: '600', display: 'block', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Simulated Cluster Console Stdout:
+                        </label>
+                        <div className="leetcode-console-status">
+                          {pysparkTerminalStatus === 'running' && (
+                            <span className="leetcode-status-tag running">Shuffling</span>
+                          )}
+                          {pysparkTerminalStatus === 'success' && (
+                            <span className="leetcode-status-tag accepted">Optimized</span>
+                          )}
+                          {pysparkTerminalStatus === 'error' && (
+                            <span className="leetcode-status-tag wrong-answer">Skew Skew</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`terminal-output ${pysparkTerminalStatus}`} style={{ minHeight: '160px', maxHeight: '240px', overflowY: 'auto', fontFamily: 'var(--font-mono, monospace)', fontSize: '12.5px', whiteSpace: 'pre-wrap', background: '#090d16', color: '#10b981', padding: '14px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                        {pysparkTerminalOutput || 'Cluster console is clean. Click "Run Code" to initialize execution.'}
                       </div>
                     </div>
                   </div>
@@ -5341,9 +6047,9 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                             justifyContent: 'space-between',
                             padding: '12px 16px',
                             borderRadius: '12px',
-                            background: selectedRoadmapChapter === ch.id ? 'linear-gradient(90deg, hsla(var(--primary), 0.15) 0%, hsla(var(--secondary), 0.05) 100%)' : 'hsla(var(--card), 0.3)',
-                            border: selectedRoadmapChapter === ch.id ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--border))',
-                            color: selectedRoadmapChapter === ch.id ? '#fff' : 'hsl(var(--text-muted))',
+                            background: selectedRoadmapChapter === ch.id ? 'hsl(var(--primary) / 0.08)' : '#ffffff',
+                            border: selectedRoadmapChapter === ch.id ? '1px solid hsl(var(--primary) / 0.25)' : '1px solid hsl(var(--border))',
+                            color: selectedRoadmapChapter === ch.id ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                             textAlign: 'left',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
@@ -5372,7 +6078,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                           <div className="instruction-step active" style={{ margin: 0, padding: '24px' }}>
                             <span className="step-badge">Module {ch.id} / 17</span>
-                            <h2 style={{ color: '#fff', fontSize: '20px', marginTop: '6px' }}>{ch.title}</h2>
+                            <h2 style={{ color: 'hsl(var(--text))', fontSize: '20px', marginTop: '6px' }}>{ch.title}</h2>
                             <p style={{ marginTop: '8px', fontSize: '14px', lineHeight: '1.5', color: 'hsl(var(--text-muted))' }}>
                               {ch.desc}
                             </p>
@@ -5409,7 +6115,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                           {/* Interactive Exam Prep Quiz Box */}
                           <div className="instruction-step" style={{ margin: 0, padding: '20px', border: '1px solid hsl(var(--border))', background: 'hsla(var(--card), 0.2)' }}>
                             <span className="step-badge purple">📝 Exam Practice Question</span>
-                            <p style={{ marginTop: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', lineHeight: '1.4' }}>
+                            <p style={{ marginTop: '8px', fontSize: '14px', fontWeight: '600', color: 'hsl(var(--text))', lineHeight: '1.4' }}>
                               {ch.quiz.question}
                             </p>
 
@@ -5443,7 +6149,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                                       borderRadius: '8px',
                                       border: `1px solid ${borderCol}`,
                                       background: bgCol,
-                                      color: isSelected || (activeQuiz.checked && optIdx === ch.quiz.correctIndex) ? '#fff' : 'hsl(var(--text-muted))',
+                                      color: activeQuiz.checked && optIdx === ch.quiz.correctIndex ? 'hsl(var(--success))' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                                       fontSize: '13px',
                                       textAlign: 'left',
                                       cursor: activeQuiz.checked ? 'default' : 'pointer',
@@ -5487,23 +6193,23 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                             </span>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', fontSize: '12.5px' }}>
                               <div style={{ borderLeft: '2px solid hsl(var(--secondary))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Phase 1: Foundations</strong>
-                                <p style={{ fontSize: '11px', color: 'hsl(var(--text-dark))', marginTop: '2px' }}>NumPy arrays, CSV/Excel parsing, row selections.</p>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Phase 1: Foundations</strong>
+                                <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>NumPy arrays, CSV/Excel parsing, row selections.</p>
                               </div>
                               <div style={{ borderLeft: '2px solid hsl(var(--primary))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Phase 2: Cleaning Core</strong>
-                                <p style={{ fontSize: '11px', color: 'hsl(var(--text-dark))', marginTop: '2px' }}>Filters, NaNs imputation, duplicates, sorts.</p>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Phase 2: Cleaning Core</strong>
+                                <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>Filters, NaNs imputation, duplicates, sorts.</p>
                               </div>
                               <div style={{ borderLeft: '2px solid hsl(var(--warning))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Phase 3: Relational Wrangling</strong>
-                                <p style={{ fontSize: '11px', color: 'hsl(var(--text-dark))', marginTop: '2px' }}>GroupBy aggregates, joins, maps, concat.</p>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Phase 3: Relational Wrangling</strong>
+                                <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>GroupBy aggregates, joins, maps, concat.</p>
                               </div>
                               <div style={{ borderLeft: '2px solid hsl(var(--danger))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Phase 4: Datetime & Scalability</strong>
-                                <p style={{ fontSize: '11px', color: 'hsl(var(--text-dark))', marginTop: '2px' }}>Timeseries shift/rolling window, SQL integration.</p>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Phase 4: Datetime & Scalability</strong>
+                                <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>Timeseries shift/rolling window, SQL integration.</p>
                               </div>
                               <div style={{ borderLeft: '2px solid hsl(var(--success))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Phase 5: Cloud Architecture</strong>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Phase 5: Cloud Architecture</strong>
                                 <p style={{ fontSize: '11px', color: 'hsl(var(--text-dark))', marginTop: '2px' }}>Spark scaling, Airflow DAGs, secured loaders.</p>
                               </div>
                             </div>
@@ -5746,9 +6452,9 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                             justifyContent: 'space-between',
                             padding: '12px 16px',
                             borderRadius: '12px',
-                            background: selectedDatabricksChapter === ch.id ? 'linear-gradient(90deg, hsla(var(--primary), 0.15) 0%, hsla(var(--secondary), 0.05) 100%)' : 'hsla(var(--card), 0.3)',
-                            border: selectedDatabricksChapter === ch.id ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--border))',
-                            color: selectedDatabricksChapter === ch.id ? '#fff' : 'hsl(var(--text-muted))',
+                            background: selectedDatabricksChapter === ch.id ? 'hsl(var(--primary) / 0.08)' : '#ffffff',
+                            border: selectedDatabricksChapter === ch.id ? '1px solid hsl(var(--primary) / 0.25)' : '1px solid hsl(var(--border))',
+                            color: selectedDatabricksChapter === ch.id ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                             textAlign: 'left',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
@@ -5777,7 +6483,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                           <div className="instruction-step active" style={{ margin: 0, padding: '24px' }}>
                             <span className="step-badge">Module {ch.id} / 18</span>
-                            <h2 style={{ color: '#fff', fontSize: '20px', marginTop: '6px' }}>{ch.title}</h2>
+                            <h2 style={{ color: 'hsl(var(--text))', fontSize: '20px', marginTop: '6px' }}>{ch.title}</h2>
                             <p style={{ marginTop: '8px', fontSize: '14px', lineHeight: '1.5', color: 'hsl(var(--text-muted))' }}>
                               {ch.desc}
                             </p>
@@ -5814,7 +6520,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                           {/* Interactive Exam Prep Quiz Box */}
                           <div className="instruction-step" style={{ margin: 0, padding: '20px', border: '1px solid hsl(var(--border))', background: 'hsla(var(--card), 0.2)' }}>
                             <span className="step-badge purple">📝 Click-to-Verify MCQ</span>
-                            <p style={{ marginTop: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', lineHeight: '1.4' }}>
+                            <p style={{ marginTop: '8px', fontSize: '14px', fontWeight: '600', color: 'hsl(var(--text))', lineHeight: '1.4' }}>
                               {ch.quiz.question}
                             </p>
 
@@ -5848,7 +6554,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                                       borderRadius: '8px',
                                       border: `1px solid ${borderCol}`,
                                       background: bgCol,
-                                      color: isSelected || (activeQuiz.checked && optIdx === ch.quiz.correctIndex) ? '#fff' : 'hsl(var(--text-muted))',
+                                      color: activeQuiz.checked && optIdx === ch.quiz.correctIndex ? 'hsl(var(--success))' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                                       fontSize: '13px',
                                       textAlign: 'left',
                                       cursor: activeQuiz.checked ? 'default' : 'pointer',
@@ -5892,19 +6598,19 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                             </span>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px', fontSize: '12.5px', lineHeight: '1.4' }}>
                               <div style={{ borderLeft: '2px solid hsl(var(--secondary))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Use Ephemeral Job Clusters</strong>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Use Ephemeral Job Clusters</strong>
                                 <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>Spin up clusters dedicated to a single task run. Job DBUs are 30% cheaper than all-purpose workspace VMs.</p>
                               </div>
                               <div style={{ borderLeft: '2px solid hsl(var(--primary))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Enable Auto-Termination</strong>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Enable Auto-Termination</strong>
                                 <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>Configure all-purpose workspaces to auto-shutdown after 15-20 minutes of inactivity to prevent runaway cloud bills.</p>
                               </div>
                               <div style={{ borderLeft: '2px solid hsl(var(--warning))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Leverage Instance Pools</strong>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Leverage Instance Pools</strong>
                                 <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>Keep pre-warmed virtual machine instances idle to slash cluster boot times from 7 minutes to under 40 seconds.</p>
                               </div>
                               <div style={{ borderLeft: '2px solid hsl(var(--success))', paddingLeft: '8px' }}>
-                                <strong style={{ color: '#fff' }}>Spot Instances for Workers</strong>
+                                <strong style={{ color: 'hsl(var(--text))' }}>Spot Instances for Workers</strong>
                                 <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>Configure worker nodes to use spot instances (up to 90% discount). Always keep the Driver node as On-Demand.</p>
                               </div>
                             </div>
@@ -5942,93 +6648,166 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
 
               {databricksSubTab === 'playground' && (
                 /* PLAYGROUND COMPILER VIEW */
-                <div className="playground-split">
-                  <div className="playground-instructions">
-                    <div className="card-title-container">
-                      <div className="card-header-with-icon">
-                        <Database className="card-header-icon" />
-                        <div>
-                          <h2>PySpark Compiler Simulator</h2>
-                          <p className="card-subtitle">Run standard PySpark / Delta Lake templates locally</p>
-                        </div>
-                      </div>
-                    </div>
-
+                <div className="leetcode-split">
+                  {/* Left Problem Statement Panel */}
+                  <div className="leetcode-problem-panel">
                     <div className="form-group" style={{ marginBottom: '16px' }}>
-                      <label>Select Preset Template:</label>
+                      <label style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: '600', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Select Databricks Problem:
+                      </label>
                       <select
-                        className="form-control select-dropdown"
+                        className="form-select"
                         style={{
                           width: '100%',
-                          background: 'hsla(var(--card), 0.5)',
+                          background: '#ffffff',
                           border: '1px solid hsl(var(--border))',
                           borderRadius: '8px',
                           padding: '10px',
-                          color: '#fff',
+                          color: 'hsl(var(--text))',
                           outline: 'none',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          fontSize: '13.5px',
+                          fontWeight: '500'
                         }}
                         value={databricksActiveTemplate}
                         onChange={(e) => loadPresetTemplate(e.target.value)}
                       >
-                        <option value="Ingestion Auto Loader">Template A: Auto Loader Stream Ingestion</option>
-                        <option value="Medallion Silver Cleaning">Template B: Silver Layer Deduplication & Casts</option>
-                        <option value="Window running totals">Template C: Window Partition Aggregates</option>
-                        <option value="Delta Merge CDC">Template D: Delta Lake CDC MERGE (Upsert)</option>
-                        <option value="Delta compactions (Z-Order)">Template E: Delta Lake OPTIMIZE & VACUUM</option>
-                        <option value="Unity Catalog governance">Template F: Unity Catalog Securables & Grants</option>
+                        <option value="Ingestion Auto Loader">Auto Loader Stream Ingestion</option>
+                        <option value="Medallion Silver Cleaning">Silver Deduplication & Casts</option>
+                        <option value="Window running totals">Window Partition Aggregates</option>
+                        <option value="Delta Merge CDC">Delta Lake CDC MERGE (Upsert)</option>
+                        <option value="Delta compactions (Z-Order)">Delta Lake OPTIMIZE & VACUUM</option>
+                        <option value="Unity Catalog governance">Unity Catalog Securables & Grants</option>
                       </select>
                     </div>
 
-                    <div className="visualizer-card" style={{ padding: '16px', background: 'hsla(var(--card), 0.2)' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'hsl(var(--primary))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        🛡️ Centralized Governance Securables
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                      <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'hsl(var(--text))' }}>
+                        {databricksCompilerProblems[databricksActiveTemplate]?.title}
+                      </h2>
+                      <span className={`leetcode-badge ${databricksCompilerProblems[databricksActiveTemplate]?.difficulty.toLowerCase()}`}>
+                        {databricksCompilerProblems[databricksActiveTemplate]?.difficulty}
                       </span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
-                        <p><strong>Metastore</strong>: Top-level container linking all child catalogs across cloud regions.</p>
-                        <p><strong>Catalog</strong>: Organization level (e.g. <code>finance_catalog</code>). Divides departments.</p>
-                        <p><strong>Schema / Database</strong>: Logically groups tables, views, and external storage volumes.</p>
-                        <p><strong>Managed Table</strong>: Auto-managed S3/ADLS lifecycle. Deleting table deletes raw files.</p>
-                        <p><strong>External Table</strong>: References external directories. Dropping table only removes metadata.</p>
-                      </div>
                     </div>
+
+                    <p style={{ fontSize: '14px', color: 'hsl(var(--text))', lineHeight: '1.6', marginTop: '8px' }}>
+                      {databricksCompilerProblems[databricksActiveTemplate]?.statement}
+                    </p>
+
+                    <h3 className="leetcode-section-title">Examples</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {databricksCompilerProblems[databricksActiveTemplate]?.examples.map((ex, idx) => (
+                        <div key={idx} className="leetcode-example-block">
+                          <strong>Example {idx + 1}:</strong><br />
+                          <strong>Input:</strong> {ex.input}<br />
+                          <strong>Output:</strong> {ex.output}<br />
+                          {ex.explanation && (
+                            <>
+                              <strong>Explanation:</strong> {ex.explanation}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <h3 className="leetcode-section-title">Constraints</h3>
+                    <ul style={{ paddingLeft: '20px', margin: '4px 0 0 0', fontSize: '13px', color: 'hsl(var(--text-muted))', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {databricksCompilerProblems[databricksActiveTemplate]?.constraints.map((c, idx) => (
+                        <li key={idx} style={{ listStyleType: 'disc' }}>{c}</li>
+                      ))}
+                    </ul>
+
+                    {showDatabricksSolution && (
+                      <div style={{ marginTop: '20px', border: '1px solid hsl(var(--primary))', borderRadius: '12px', background: 'hsla(var(--primary), 0.05)', padding: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'hsl(var(--primary))', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            💡 Optimal Delta Plan Solution
+                          </span>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '2px 8px', fontSize: '11px', height: 'auto' }}
+                            onClick={() => setShowDatabricksSolution(false)}
+                          >
+                            Hide Solution
+                          </button>
+                        </div>
+                        <pre style={{
+                          background: '#090d16',
+                          color: '#f8fafc',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          fontSize: '12.5px',
+                          fontFamily: 'var(--font-mono, monospace)',
+                          overflowX: 'auto',
+                          border: '1px solid #1e293b',
+                          margin: 0
+                        }}>
+                          <code>{databricksCompilerProblems[databricksActiveTemplate]?.solution}</code>
+                        </pre>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Editor Side */}
+                  {/* Right Editor & Console Panel */}
                   <div className="flex-column d-flex gap-16">
-                    <div className="editor-container" style={{ minHeight: '320px' }}>
+                    <div className="editor-container" style={{ minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
                       <div className="editor-header">
                         <div className="editor-dots">
                           <div className="editor-dot"></div>
                           <div className="editor-dot"></div>
                           <div className="editor-dot"></div>
                         </div>
-                        <span className="editor-title">pyspark_compiler.py</span>
+                        <span className="editor-title">{databricksActiveTemplate.toLowerCase().replace(/[^a-z0-9]+/g, '_').substring(0, 20)}.py</span>
                       </div>
 
-                      <div className="editor-body">
+                      <div className="editor-body" style={{ flex: 1, display: 'flex' }}>
                         <textarea
                           className="code-textarea"
-                          placeholder="Write your PySpark / SQL script here..."
+                          placeholder="Write your Databricks script here..."
                           value={databricksCode}
                           onChange={e => setDatabricksCode(e.target.value)}
+                          style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px', width: '100%', flex: 1, minHeight: '260px' }}
                         />
                       </div>
 
-                      <div className="editor-footer">
-                        <button className="btn btn-secondary" onClick={() => loadPresetTemplate(databricksActiveTemplate)}>
-                          Reset Script
-                        </button>
-                        <button className="btn btn-primary" onClick={runDatabricksPlayground}>
-                          <Play className="stat-icon" /> Run Script
+                      <div className="editor-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid hsl(var(--border))' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => loadPresetTemplate(databricksActiveTemplate)}>
+                            Reset Code
+                          </button>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '6px 12px', fontSize: '12px', background: showDatabricksSolution ? 'hsla(var(--primary), 0.1)' : 'transparent', borderColor: showDatabricksSolution ? 'hsl(var(--primary))' : 'hsl(var(--border))' }}
+                            onClick={() => setShowDatabricksSolution(!showDatabricksSolution)}
+                          >
+                            {showDatabricksSolution ? 'Hide Solution' : 'Show Solution'}
+                          </button>
+                        </div>
+                        <button className="btn btn-primary" style={{ padding: '6px 16px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={runDatabricksPlayground}>
+                          <Play className="stat-icon" style={{ width: '14px', height: '14px' }} /> Run Code
                         </button>
                       </div>
                     </div>
 
                     <div className="form-group">
-                      <label>Simulated Photon Output Console:</label>
-                      <div className={`terminal-output ${databricksTerminalStatus}`}>
-                        {databricksTerminalOutput || 'Ready. Click "Run Script" to initialize simulated SparkSession.'}
+                      <div className="leetcode-console-header">
+                        <label style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: '600', display: 'block', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Simulated Databricks Output Console:
+                        </label>
+                        <div className="leetcode-console-status">
+                          {databricksTerminalStatus === 'running' && (
+                            <span className="leetcode-status-tag running">Photon Active</span>
+                          )}
+                          {databricksTerminalStatus === 'success' && (
+                            <span className="leetcode-status-tag accepted">Photon Success</span>
+                          )}
+                          {databricksTerminalStatus === 'error' && (
+                            <span className="leetcode-status-tag wrong-answer">Compile Halted</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`terminal-output ${databricksTerminalStatus}`} style={{ minHeight: '160px', maxHeight: '240px', overflowY: 'auto', fontFamily: 'var(--font-mono, monospace)', fontSize: '12.5px', whiteSpace: 'pre-wrap', background: '#090d16', color: '#38bdf8', padding: '14px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                        {databricksTerminalOutput || 'Databricks execution console is clean. Click "Run Code" to trigger execution.'}
                       </div>
                     </div>
                   </div>
@@ -6052,9 +6831,9 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                           alignItems: 'center',
                           padding: '12px 16px',
                           borderRadius: '12px',
-                          background: activeCheatsheetCat === cat.id ? 'linear-gradient(90deg, hsla(var(--primary), 0.15) 0%, hsla(var(--secondary), 0.05) 100%)' : 'hsla(var(--card), 0.3)',
-                          border: activeCheatsheetCat === cat.id ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--border))',
-                          color: activeCheatsheetCat === cat.id ? '#fff' : 'hsl(var(--text-muted))',
+                          background: activeCheatsheetCat === cat.id ? 'hsl(var(--primary) / 0.08)' : '#ffffff',
+                          border: activeCheatsheetCat === cat.id ? '1px solid hsl(var(--primary) / 0.25)' : '1px solid hsl(var(--border))',
+                          color: activeCheatsheetCat === cat.id ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                           textAlign: 'left',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease',
@@ -6075,7 +6854,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
                         {/* Summary Block */}
                         <div className="instruction-step active" style={{ margin: 0, padding: '24px' }}>
                           <span className="step-badge">Category: {activeCat.title.split('. ')[1]}</span>
-                          <h2 style={{ color: '#fff', fontSize: '20px', marginTop: '6px' }}>{activeCat.title}</h2>
+                          <h2 style={{ color: 'hsl(var(--text))', fontSize: '20px', marginTop: '6px' }}>{activeCat.title}</h2>
                           <p style={{ marginTop: '8px', fontSize: '14.5px', lineHeight: '1.5', color: 'hsl(var(--text-muted))' }}>
                             {activeCat.desc}
                           </p>
@@ -6083,7 +6862,7 @@ The term "Lakehouse" was coined around 2019 to describe platforms that combine d
 
                         {/* Commands Details Grid */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          <h3 style={{ color: '#fff', fontSize: '15px', fontWeight: 'bold' }}>📋 Commands & Syntax Runbook</h3>
+                          <h3 style={{ color: 'hsl(var(--text))', fontSize: '15px', fontWeight: 'bold' }}>📋 Commands & Syntax Runbook</h3>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {activeCat.commands.map((cmd, idx) => (
                               <div

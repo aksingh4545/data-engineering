@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import ErrorLog from '@/lib/models/ErrorLog';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 // Helper to return mock data if MongoDB is not connected
 const getMockErrors = () => [
@@ -26,11 +28,14 @@ const getMockErrors = () => [
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const db = await dbConnect();
     if (!db) {
       return NextResponse.json({ data: getMockErrors(), isMock: true });
     }
-    const errors = await ErrorLog.find({}).sort({ createdAt: -1 });
+    const errors = await ErrorLog.find({ userId }).sort({ createdAt: -1 });
     return NextResponse.json({ data: errors, isMock: false });
   } catch (error) {
     console.error('Error fetching logs:', error);
@@ -40,6 +45,9 @@ export async function GET() {
 
 export async function POST(req) {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const body = await req.json();
     const db = await dbConnect();
     if (!db) {
@@ -51,7 +59,7 @@ export async function POST(req) {
       };
       return NextResponse.json({ data: newMockItem, isMock: true });
     }
-    const newLog = await ErrorLog.create(body);
+    const newLog = await ErrorLog.create({ ...body, userId });
     return NextResponse.json({ data: newLog, isMock: false });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
@@ -60,6 +68,9 @@ export async function POST(req) {
 
 export async function PATCH(req) {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const body = await req.json();
     const { id, ...updates } = body;
     if (!id) {
@@ -70,7 +81,7 @@ export async function PATCH(req) {
       // Mock update response
       return NextResponse.json({ data: { _id: id, ...updates }, isMock: true });
     }
-    const updated = await ErrorLog.findByIdAndUpdate(id, updates, { new: true });
+    const updated = await ErrorLog.findOneAndUpdate({ _id: id, userId }, updates, { new: true });
     return NextResponse.json({ data: updated, isMock: false });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
@@ -79,6 +90,9 @@ export async function PATCH(req) {
 
 export async function DELETE(req) {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) {
@@ -88,7 +102,7 @@ export async function DELETE(req) {
     if (!db) {
       return NextResponse.json({ success: true, isMock: true });
     }
-    await ErrorLog.findByIdAndDelete(id);
+    await ErrorLog.findOneAndDelete({ _id: id, userId });
     return NextResponse.json({ success: true, isMock: false });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });

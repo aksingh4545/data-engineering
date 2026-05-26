@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Progress from '@/lib/models/Progress';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 // Helper to return mock progress data if MongoDB is not connected
 const getMockProgress = () => ({
@@ -13,13 +15,16 @@ const getMockProgress = () => ({
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const db = await dbConnect();
     if (!db) {
       return NextResponse.json({ data: getMockProgress(), isMock: true });
     }
-    let progress = await Progress.findOne({ userId: 'default_user' });
+    let progress = await Progress.findOne({ userId });
     if (!progress) {
-      progress = await Progress.create({ userId: 'default_user' });
+      progress = await Progress.create({ userId });
     }
     return NextResponse.json({ data: progress, isMock: false });
   } catch (error) {
@@ -30,6 +35,9 @@ export async function GET() {
 
 export async function POST(req) {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email || 'default_user';
+
     const body = await req.json();
     const { xpToAdd, activeTimeToAdd, completedChallengeId, resetStreak } = body;
 
@@ -47,9 +55,9 @@ export async function POST(req) {
       return NextResponse.json({ data: mock, isMock: true });
     }
 
-    let progress = await Progress.findOne({ userId: 'default_user' });
+    let progress = await Progress.findOne({ userId });
     if (!progress) {
-      progress = await Progress.create({ userId: 'default_user' });
+      progress = await Progress.create({ userId });
     }
 
     if (xpToAdd) {
