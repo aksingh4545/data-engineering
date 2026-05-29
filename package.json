@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "alasql": "^4.17.3",
     "lucide-react": "^0.378.0",
     "mongoose": "^8.3.1",
     "next": "^14.2.3",
